@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
+import ENV from '../ENV.js';
 
 const generateToken = async (userId, res) => {
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+  const token = jwt.sign({ userId }, ENV.JWT_SECRET, {
     expiresIn: "7d",
   });
 
@@ -9,7 +10,7 @@ const generateToken = async (userId, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000, // in MS (7days)
     httpOnly: true,
     // sameSite: "strict",
-    secure: process.env.NODE_ENV === "development"? false : true
+    secure: ENV.NODE_ENV === "development"? false : true
   });
 
   return token;
