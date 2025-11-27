@@ -1,0 +1,55 @@
+import User from "../models/User.js";
+import bcrypt from 'bcryptjs';
+import generateToken from '../lib/utils.js';
+
+export const signup = async (req, res) => {
+  const { fullName, Email, Password } = req.body;
+  try {
+    if (!fullName || !Email || !Password) {
+        return res.status(400).json({error:"All Fiels Are Required"});
+    }
+    
+    if (Password.length < 6){
+        return res.status(400).json({error:"password must contain atleast 6 characters"});
+    }
+
+    if (fullName.length < 3){
+        return res.status(400).json({error:"name must contain atleast 3 letters"})
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(Email)){
+        return res.status(400).json({error: "Invalid email"});
+    }
+
+    const user = await User.findOne({ Email });
+    if (user) return res.status(400).json({error:"User already exits."})
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedSalt = await bcrypt.hash(Password, salt);
+
+    const newUSer = new User({
+        fullName,
+        Email,
+        Password:hashedSalt
+    })
+
+    if (newUSer){
+        generateToken(newUSer._id,res);
+        await newUSer.save();
+
+        res.status(201).json({
+            _id: newUSer._id,
+            fullName: newUSer.fullName,
+            Email: newUSer.Email,
+            profilePic: newUSer.profilePic
+        });
+    } else {
+        res.status(400).json({error:"invalid data"});
+    }
+
+  } catch (error) {
+    console.log("error occured while singin"+error);
+    res.status(500).json({error: "something went wrong please try again later"});
+  }
+};
