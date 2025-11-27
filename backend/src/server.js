@@ -4,10 +4,12 @@ import path from 'path';
 import authRouter from './routes/auth.route.js';
 import messageRouter from './routes/message.route.js';
 import { connectDB } from './lib/db.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 const PORT = ENV.PORT || 3000;
 
