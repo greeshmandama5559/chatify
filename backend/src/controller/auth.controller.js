@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import generateToken from "../lib/utils.js";
 import sendWelcomeEmail from "../emails/emailHandler.js";
 import ENV from "../ENV.js";
+import cloudirany from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
   const { fullName, Email, Password } = req.body;
@@ -75,15 +76,16 @@ export const login = async (req, res) => {
   const { Email, Password } = req.body;
 
   if (!Email || !Password) {
-      return res.status(400).json({ message: "Email and Password Are Required" });
-    }
+    return res.status(400).json({ message: "Email and Password Are Required" });
+  }
 
   try {
     const user = await User.findOne({ Email });
     if (!user) return res.status(400).json({ message: "Invalid Credentials" });
 
     const isPasswordCorrect = await bcrypt.compare(Password, user.Password);
-    if (!isPasswordCorrect) return res.status(400).json({ message: "Invalid Credentials" });
+    if (!isPasswordCorrect)
+      return res.status(400).json({ message: "Invalid Credentials" });
 
     generateToken(user._id, res);
 
@@ -94,12 +96,34 @@ export const login = async (req, res) => {
       profilePic: user.profilePic,
     });
   } catch (error) {
-    console.error("error in login controller "+error);
-    res.status(500).json({message:"internal server error"});
+    console.error("error in login controller " + error);
+    res.status(500).json({ message: "internal server error" });
   }
 };
 
 export const logout = async (_, res) => {
-    res.cookie("jwt", "", {maxAge:0});
-    res.status(200).json({message:"logout successfull"});
+  res.cookie("jwt", "", { maxAge: 0 });
+  res.status(200).json({ message: "logout successfull" });
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { profilePic } = req.body;
+    if (!profilePic) return res.status(400).json({ message: "profile is requried" });
+
+    const userId = req.user._id;
+
+    const uploadResponse = await cloudirany.uploader.upload(profilePic);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePic: uploadResponse.secure_url },
+      { new: true }
+    );
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error("error in updating profile: " + error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
