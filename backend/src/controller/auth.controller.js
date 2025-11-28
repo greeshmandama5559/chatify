@@ -95,9 +95,12 @@ export const login = async (req, res) => {
       Email: user.Email,
       profilePic: user.profilePic,
     });
+    
   } catch (error) {
     console.error("error in login controller " + error);
-    res.status(500).json({ message: "internal server error" });
+    if (!res.headersSent) {
+      return res.status(500).json({ message: "internal server error" });
+    }
   }
 };
 
