@@ -41,6 +41,15 @@ export const sendMessage = async (req, res) => {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
+    if (!text && !image) {
+        return res.status(400).json({message:"text or message is required"})
+    }
+
+    const receiverExists = await User.exists({_id: receiverId});
+    if(!receiverExists){
+        return res.status(400).json({message:"receiver not exists."});
+    }
+
     let imageUrl;
     if (image) {
       const imageResponse = await cloudirany.uploader.upload(image);
