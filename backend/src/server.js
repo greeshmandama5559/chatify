@@ -10,7 +10,7 @@ import cors from "cors";
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:5173",  // React dev server
+  origin: ENV.CLIENT_URL,  // React dev server
   credentials: true                 // allow cookies
 }));
 
