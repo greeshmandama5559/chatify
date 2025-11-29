@@ -1,10 +1,22 @@
-import { Routes, Route } from "react-router";
+import { Routes, Route, Navigate } from "react-router";
 import ChatPage from "./pages/ChatPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import { Toaster } from 'react-hot-toast';
+import { useAuthStore } from "./store/useAuthStore";
+import { useEffect } from "react";
+import PageLoader from "./components/PageLoader";
 
 function App() {
+
+  const { checkAuth, authUser, isCheckingAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth]);
+
+  if (isCheckingAuth) return <PageLoader />
+
   return (
     <div className="min-h-screen bg-slate-900 relative flex items-center justify-center p-4 overflow-hidden">
       {/* DECORATORS - GRID BG & GLOW SHAPES */}
@@ -13,9 +25,9 @@ function App() {
       <div className="absolute bottom-0 -right-4 size-96 bg-cyan-500 opacity-20 blur-[100px]" />
 
       <Routes>
-        <Route index element={<ChatPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route index element={ authUser? <ChatPage /> : <Navigate to={"/login"} /> } />
+        <Route path="/signup" element={ !authUser? <SignupPage /> : <Navigate to={"/"} /> } />
+        <Route path="/login" element={ !authUser? <LoginPage /> : <Navigate to={"/"} /> } />
       </Routes>
 
       <Toaster position="top-center" />

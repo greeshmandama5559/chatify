@@ -4,7 +4,7 @@ import { aj } from "../lib/archet.js";
 export const arcjetProtection = async (req, res, next) => {
   try {
     const decision = await aj.protect(req, { requested: 5 });
-    console.log("Arcjet decision", decision);
+    // console.log("Arcjet decision", decision);
 
     if (decision.isDenied()) {
       if (decision.reason.isRateLimit()) {
