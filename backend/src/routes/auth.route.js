@@ -19,7 +19,7 @@ route.post("/login", login);
 
 route.post("/logout", logout);
 
-route.post("/update-profile", protectedRoute ,updateProfile);
+route.put("/update-profile", protectedRoute ,updateProfile);
 
 route.get("/check", protectedRoute, (req, res) => {
   return res.status(200).json(req.user);
