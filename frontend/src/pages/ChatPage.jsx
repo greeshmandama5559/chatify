@@ -18,7 +18,9 @@ function ChatPage() {
           {/* Left Side */}
           <div className="w-72 h-[700px] rounded-l-2xl md:w-80 bg-slate-800/50 backdrop-blur-sm flex flex-col border-r border-slate-700/30">
             <ProfileHeader />
-            <ActiveTabSwitch />
+            <div className="w-full px-4">
+              <ActiveTabSwitch />
+            </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {activeTab === "chats" ? <ChatsList /> : <ContactList />}
             </div>
