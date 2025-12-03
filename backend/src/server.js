@@ -6,8 +6,7 @@ import messageRouter from './routes/message.route.js';
 import { connectDB } from './lib/db.js';
 import cookieParser from 'cookie-parser';
 import cors from "cors";
-
-const app = express();
+import { app, server } from './lib/socket.js';
 
 app.use(cors({
   origin: ENV.CLIENT_URL,  // React dev server
@@ -32,7 +31,7 @@ if(ENV.NODE_ENV === "production"){
     })
 }
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`server is running on port ${PORT}...`);
     connectDB();
 })

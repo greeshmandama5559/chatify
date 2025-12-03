@@ -29,9 +29,9 @@ function LoginPage() {
       <div className="relative w-full max-w-3xl md:max-w-5xl">
         <BorderAnimatedContainer>
           <div className="w-full flex flex-col md:flex-row ">
-            <div className="md:w-1/2 px-6 py-10 md:py-12 md:px-15 flex items-center justify-center md:border-r border-slate-600/30">
+            <div className="md:w-1/2 px-10 py-13 md:py-12 md:px-15 flex items-center justify-center md:border-r border-slate-600/30">
               <div className="w-full max-w-md">
-                <div className="text-center mb-6">
+                <div className="text-center mb-10">
                   <MessageCircleIcon className="w-12 h-12 mx-auto text-slate-400 mb-4" />
                   <h2 className="text-2xl font-bold text-slate-200 mb-2">
                     Welcome Back

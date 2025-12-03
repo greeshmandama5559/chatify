@@ -8,8 +8,18 @@
 }
 
 html, body {
+  padding: 0;
+  margin-top: 0;
   overflow: hidden;
 
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
 }
 
 /* Utility for password eye icon container */
