@@ -230,7 +230,7 @@ function ChatContainer() {
                     // If this is the last message and partner is typing, gently lift it.
                     style={
                       isLast && partnerIsTyping
-                        ? { transform: "translateY(-20px)" }
+                        ? { transform: "translateY(-16px)" }
                         : undefined
                     }
                     className={`relative max-w-[80%] px-3 py-2 shadow-lg transition-transform duration-200 mb-2
@@ -258,7 +258,7 @@ function ChatContainer() {
                           }
                           style={
                             isLast && partnerIsTyping
-                              ? { transform: "translateY(-20px)" }
+                              ? { transform: "translateY(-16px)" }
                               : undefined
                           }
                           onClick={() =>
@@ -383,7 +383,7 @@ function ChatContainer() {
               <img
                 src={modalSrc}
                 alt="Preview"
-                className="max-w-[90vw] max-h-[82vh] object-contain rounded"
+                className="max-w-[72vw] max-h-[82vh] object-contain rounded"
                 onError={(e) => {
                   // show fallback by replacing src (or you can show message)
                   e.currentTarget.src = "/image-fallback.png";
