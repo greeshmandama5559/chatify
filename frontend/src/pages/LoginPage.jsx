@@ -39,7 +39,7 @@ function LoginPage() {
                   <p className="text-slate-400">Login to your existing account</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-10">
 
                   <div>
                     <label className="auth-input-label">Email</label>
