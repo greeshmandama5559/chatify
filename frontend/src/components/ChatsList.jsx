@@ -42,7 +42,7 @@ function ChatsList() {
           const isSelected = toId(selectedUser?._id) === chatId;
           const isOnline = onlineUsers.map(toId).includes(chatId);
           const isMeSender = toId(chat.lastMessageSender) === meId;
-          const otherUserName = (chat.fullName || "").trim().split(" ")[0] || "";
+          // const otherUserName = (chat.fullName || "").trim().split(" ")[0] || "";
           const isTyping = !!typingStatuses?.[chatId];
 
           // Show typing if other user is typing, not the current user, and chat isn't currently selected.
@@ -104,7 +104,7 @@ function ChatsList() {
                   {/* Unseen badge */}
                   {hasUnseen && (
                     <div className="ml-2 flex items-center">
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/95 text-black min-w-[20px] text-center">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-500/95 text-black min-w-[20px] text-center">
                         {unseenCountRaw > 9 ? "9+" : unseenCountRaw}
                       </span>
                     </div>
@@ -119,7 +119,7 @@ function ChatsList() {
                   {showTyping && (
                     <span
                       className={`flex-1 truncate inline-flex items-center gap-2 ${
-                        isSelected ? "text-cyan-400/80" : hasUnseen ? "text-amber-200 font-semibold" : "text-slate-400"
+                        isSelected ? "text-cyan-400/80" : hasUnseen ? "text-green-200 font-semibold" : "text-slate-400"
                       }`}
                     >
                       <span className="truncate">Typing...</span>
@@ -136,17 +136,17 @@ function ChatsList() {
                       {!isMeSender && (
                         <span
                           className={`flex-1 truncate inline-flex items-center gap-2 ${
-                            isSelected ? "text-cyan-400/80" : hasUnseen ? "text-amber-200 font-semibold" : "text-slate-400"
+                            isSelected ? "text-cyan-400/80" : hasUnseen ? "text-green-200 font-semibold" : "text-slate-400"
                           }`}
                         >
                           {isLastUnseenForThisChat && (
-                            <span aria-hidden className="inline-block w-1 h-4 rounded-full bg-amber-400 flex-shrink-0" />
+                            <span aria-hidden className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0" />
                           )}
                           <span className="truncate">
-                            {otherUserName}: {chat.lastMessageText}
+                            {chat.lastMessageText}
                           </span>
                           {isLastUnseenForThisChat && (
-                            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500 text-black">
+                            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
                               new
                             </span>
                           )}

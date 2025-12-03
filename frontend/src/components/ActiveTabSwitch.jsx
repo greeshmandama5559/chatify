@@ -1,16 +1,32 @@
 import { useChatStore } from "../store/useChatStore";
 
 function ActiveTabSwitch() {
-  const { activeTab, setActiveTab } = useChatStore();
+  const {
+    activeTab,
+    setActiveTab,
+    chats = [],
+    unseenCounts = {},
+  } = useChatStore();
 
   if (activeTab === "chats") {
-    const { chats, getMyChatPartners } = useChatStore.getState();
+    const { getMyChatPartners } = useChatStore.getState();
 
     // If no chats loaded OR chats contain invalid entries → refetch
     if (!Array.isArray(chats) || chats.some((c) => !c || !c._id)) {
       getMyChatPartners();
     }
   }
+
+  // Compute total unseen count:
+  // Prefer counts from chats (if any chats have unseenCount defined).
+  const totalFromChats = Array.isArray(chats)
+    ? chats.reduce((sum, c) => sum + (Number(c?.unseenCount) || 0), 0)
+    : 0;
+  const totalFromMap = Object.values(unseenCounts || {}).reduce(
+    (sum, v) => sum + (Number(v) || 0),
+    0
+  );
+  const totalUnseen = totalFromChats > 0 ? totalFromChats : totalFromMap;
 
   return (
     <div className="px-4 pt-4 pb-2">
@@ -30,8 +46,19 @@ function ActiveTabSwitch() {
               ? "text-cyan-400"
               : "text-slate-400 hover:text-slate-300"
           }`}
+          aria-pressed={activeTab === "chats"}
         >
-          Chats
+          <span>Chats</span>
+
+          {/* Total unseen badge (top-right corner) */}
+          {totalUnseen > 0 && (
+            <span
+              aria-hidden
+              className="absolute -top-1 -left-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-500/95 text-black min-w-[20px] flex items-center justify-center shadow-md"
+            >
+              {totalUnseen > 99 ? "99+" : totalUnseen}
+            </span>
+          )}
         </button>
 
         <button
@@ -41,6 +68,7 @@ function ActiveTabSwitch() {
               ? "text-cyan-400"
               : "text-slate-400 hover:text-slate-300"
           }`}
+          aria-pressed={activeTab === "contacts"}
         >
           Contacts
         </button>

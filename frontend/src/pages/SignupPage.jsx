@@ -35,7 +35,7 @@ function SignUpPage() {
                   <p className="text-slate-400">Sign up for a new account</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-10">
                   <div>
                     <label className="auth-input-label">Full Name</label>
                     <div className="relative">
