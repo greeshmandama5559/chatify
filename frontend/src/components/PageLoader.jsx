@@ -13,9 +13,9 @@ function PageLoader() {
           />
 
           {/* Text overlay */}
-          <h4 className="absolute animate-bounce ml-10 inset-0 flex items-center justify-center text-cyan-200 text-2xl font-bold tracking-wide">
+          {/* <h4 className="absolute animate-bounce ml-10 inset-0 flex items-center justify-center text-cyan-200 text-2xl font-bold tracking-wide">
             ConvoX
-          </h4>
+          </h4> */}
         </div>
       </div>
     </div>
