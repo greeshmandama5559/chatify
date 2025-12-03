@@ -1,47 +1,167 @@
 import { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
-// import { useAuthStore } from "../store/useAuthStore";
 import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
 import NoChatsFound from "./NoChatsFound";
+import { useAuthStore } from "../store/useAuthStore";
 
 function ChatsList() {
-  const { chats, getMyChatPartners, setSelectedUser, isUsersLoading } =
-    useChatStore();
-  // const { onlineUsers } = useAuthStore();
+  const {
+    getMyChatPartners,
+    chats = [],
+    isUsersLoading,
+    selectedUser,
+    setSelectedUser,
+    unseenCounts = {},
+    lastUnseenMessageId = {},
+    typingStatuses = {},
+  } = useChatStore();
+
+  // onlineUsers might be undefined until auth store initializes — default to []
+  const { onlineUsers = [], authUser = {} } = useAuthStore();
 
   useEffect(() => {
     getMyChatPartners();
   }, [getMyChatPartners]);
 
-  if (isUsersLoading) return <UsersLoadingSkeleton size={3} />;
-  if (chats.length === 0) return <NoChatsFound />;
+  if (isUsersLoading) return <UsersLoadingSkeleton />;
+  if (!Array.isArray(chats) || chats.length === 0) return <NoChatsFound />;
+
+  // helper to normalise ids to strings for consistent lookup
+  const toId = (v) => String(v ?? "");
+
+  const meId = toId(authUser._id);
 
   return (
-    <>
-      {chats.map((chat) => {
-        return (
-          <div
-            key={chat._id}
-            className="bg-cyan-500/10 p-4 rounded-2xl cursor-pointer hover:bg-cyan-500/20 transition-colors"
-            onClick={() => setSelectedUser(chat)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="avatar avatar-offline">
-                <div className="size-12 rounded-full">
+    <div className="px-3 pb-4 space-y-1">
+      {chats
+        .filter(Boolean)
+        .map((chat) => {
+          if (!chat || !chat._id) return null;
+
+          const chatId = toId(chat._id);
+          const isSelected = toId(selectedUser?._id) === chatId;
+          const isOnline = onlineUsers.map(toId).includes(chatId);
+          const isMeSender = toId(chat.lastMessageSender) === meId;
+          const otherUserName = (chat.fullName || "").trim().split(" ")[0] || "";
+          const isTyping = !!typingStatuses?.[chatId];
+
+          // Show typing if other user is typing, not the current user, and chat isn't currently selected.
+          // (Note: removed the previous constraint that blocked typing if lastMessageSender === meId)
+          const showTyping = isTyping && chatId !== meId && !isSelected;
+
+          // unseenCount: prefer chat.unseenCount (if present) else fall back to unseenCounts map
+          const unseenCountRaw =
+            chat.unseenCount !== undefined
+              ? Number(chat.unseenCount) || 0
+              : Number(unseenCounts?.[chatId]) || 0;
+          const hasUnseen = unseenCountRaw > 0;
+
+          // lastUnseenMessageId might be stored keyed by chatId (string)
+          const isLastUnseenForThisChat = !!(lastUnseenMessageId && lastUnseenMessageId[chatId]);
+
+          return (
+            <button
+              key={chatId}
+              onClick={() => {
+                if (!isSelected){
+                  setSelectedUser(chat)
+                }
+              }}
+              aria-pressed={isSelected}
+              className={`w-full p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group
+                ${
+                  isSelected
+                    ? "bg-slate-800/80 ring-1 ring-cyan-500/50 shadow-lg shadow-black/20"
+                    : "hover:bg-slate-800/50 hover:pl-4"
+                }
+              `}
+            >
+              {/* Avatar */}
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-700 group-hover:border-slate-600 transition-colors">
                   <img
                     src={chat.profilePic || "/avatar.png"}
-                    alt={chat.fullName}
+                    alt={chat.fullName || "avatar"}
+                    className="w-full h-full object-cover"
                   />
                 </div>
+                {isOnline && (
+                  <span className="absolute mb-0.5 mr-0.5 bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full shadow-sm" />
+                )}
               </div>
-              <h4 className="text-slate-200 font-medium truncate">
-                {chat.fullName}
-              </h4>
-            </div>
-          </div>
-        );
-      })}
-    </>
+
+              {/* Info */}
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex justify-between items-baseline">
+                  <h4
+                    className={`font-medium text-sm truncate transition-colors ${
+                      isSelected ? "text-cyan-100" : "text-slate-300 group-hover:text-white"
+                    }`}
+                  >
+                    {chat.fullName || "Unknown"}
+                  </h4>
+
+                  {/* Unseen badge */}
+                  {hasUnseen && (
+                    <div className="ml-2 flex items-center">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/95 text-black min-w-[20px] text-center">
+                        {unseenCountRaw > 9 ? "9+" : unseenCountRaw}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <p
+                  className={`text-xs truncate mt-0.5 flex items-center ${
+                    isSelected ? "text-cyan-200/60" : "text-slate-500 group-hover:text-slate-400"
+                  }`}
+                >
+                  {showTyping && (
+                    <span
+                      className={`flex-1 truncate inline-flex items-center gap-2 ${
+                        isSelected ? "text-cyan-400/80" : hasUnseen ? "text-amber-200 font-semibold" : "text-slate-400"
+                      }`}
+                    >
+                      <span className="truncate">Typing...</span>
+                    </span>
+                  )}
+
+                  {!showTyping && chat.lastMessageText ? (
+                    <>
+                      {isMeSender && (
+                        <span className={isSelected ? "text-cyan-400/80" : "text-slate-400"}>
+                          You: {chat.lastMessageText}
+                        </span>
+                      )}
+                      {!isMeSender && (
+                        <span
+                          className={`flex-1 truncate inline-flex items-center gap-2 ${
+                            isSelected ? "text-cyan-400/80" : hasUnseen ? "text-amber-200 font-semibold" : "text-slate-400"
+                          }`}
+                        >
+                          {isLastUnseenForThisChat && (
+                            <span aria-hidden className="inline-block w-1 h-4 rounded-full bg-amber-400 flex-shrink-0" />
+                          )}
+                          <span className="truncate">
+                            {otherUserName}: {chat.lastMessageText}
+                          </span>
+                          {isLastUnseenForThisChat && (
+                            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500 text-black">
+                              new
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    !showTyping && <span className="text-slate-500 italic">No messages</span>
+                  )}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+    </div>
   );
 }
 
