@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router";
+import { Routes, Route, Navigate } from "react-router-dom";
 import ChatPage from "./pages/ChatPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -7,9 +7,38 @@ import { useAuthStore } from "./store/useAuthStore";
 import { useEffect } from "react";
 import PageLoader from "./components/PageLoader";
 import { useChatStore } from "./store/useChatStore";
+import CallPage from "./pages/CallPage";
+import EmailVerification from "./pages/EmailVerification";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+
+  const ProtectedRoute = ({ children }) => {
+
+    const {isAuthenticated, deleteUser, authUser } = useAuthStore();
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace />;
+    }
+
+    if (!authUser.isVerified) {
+      deleteUser(authUser._id);
+      return <Navigate to="/signup" replace />
+    }
+
+    return children;
+  };
+
+  // redirect authenticated users to the home page
+  const RedirectAuthenticatedUser = ({ children }) => {
+
+    const {authUser, isAuthenticated } = useAuthStore();
+    if (isAuthenticated && authUser?.isVerified) {
+      return <Navigate to="/" replace />; 
+    }
+
+    return children;
+  };
 
 function App() {
-  const { checkAuth, authUser, isCheckingAuth } = useAuthStore();
+  const { checkAuth, isCheckingAuth, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -35,16 +64,47 @@ function App() {
       <Routes>
         <Route
           index
-          element={authUser ? <ChatPage /> : <Navigate to={"/login"} />}
+          element={ 
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
         />
+
+        <Route path="/verify-email" element={isAuthenticated ? <EmailVerification /> : <SignupPage />} />
+
         <Route
           path="/signup"
-          element={!authUser ? <SignupPage /> : <Navigate to={"/"} />}
+          element={
+            <RedirectAuthenticatedUser>
+              <SignupPage />
+            </RedirectAuthenticatedUser>
+          }
         />
         <Route
           path="/login"
-          element={!authUser ? <LoginPage /> : <Navigate to={"/"} />}
+          element={
+            <RedirectAuthenticatedUser>
+              <LoginPage />
+            </RedirectAuthenticatedUser>
+          }
         />
+        <Route
+          path="/call/:id"
+          element={
+            <ProtectedRoute>
+              <CallPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+					path='/reset-password/:token'
+					element={
+						<RedirectAuthenticatedUser>
+							<ResetPasswordPage />
+						</RedirectAuthenticatedUser>
+					}
+				/>
       </Routes>
 
       <Toaster position="top-center" />

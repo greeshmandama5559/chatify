@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { axiosInstace } from "../lib/axios";
+import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 
@@ -66,7 +66,7 @@ export const useChatStore = create((set, get) => ({
   getAllContacts: async () => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstace.get("/messages/contacts");
+      const res = await axiosInstance.get("/messages/contacts");
       set({ allContacts: res.data });
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to load contacts");
@@ -79,7 +79,7 @@ export const useChatStore = create((set, get) => ({
   getMyChatPartners: async () => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstace.get("/messages/chats");
+      const res = await axiosInstance.get("/messages/chats");
       // make sure chats include unseenCount if store has seen/synced info
       const chatsFromServer = res.data.map((c) => ({
         ...c,
@@ -105,7 +105,7 @@ export const useChatStore = create((set, get) => ({
         set({ messages: [] });
       }
 
-      const res = await axiosInstace(`/messages/${userId}`);
+      const res = await axiosInstance(`/messages/${userId}`);
       const serverMessages = res.data || [];
 
       const merged = mergeMessages(cached || [], serverMessages);
@@ -159,6 +159,8 @@ export const useChatStore = create((set, get) => ({
       image: messageData.image,
       createdAt: new Date().toISOString(),
       isOptimistic: true,
+      // preserve any extra fields (type, url, etc.)
+      ...messageData,
     };
 
     // Add optimistic message to the current live state (use get() to avoid stale writes)
@@ -223,43 +225,46 @@ export const useChatStore = create((set, get) => ({
 
     // ----- send to server -----
     try {
-      const res = await axiosInstace.post(
+      const res = await axiosInstance.post(
         `/messages/send/${selectedId}`,
         messageData
       );
 
       const serverMsg = res.data;
 
-      // If server returned a Mongoose-style nested sender info, ensure ids are strings
       if (serverMsg.senderId) serverMsg.senderId = String(serverMsg.senderId);
       if (serverMsg.receiverId)
         serverMsg.receiverId = String(serverMsg.receiverId);
       if (serverMsg._id) serverMsg._id = String(serverMsg._id);
 
-      // Integrate server message into current live messages safely:
-      // - If optimistic (tempId) exists -> replace it
-      // - Else if server message id already present -> do nothing (dedupe)
-      // - Else append server message
       set((state) => {
         const curMessages = Array.isArray(state.messages) ? state.messages : [];
         const hasServer = curMessages.some(
           (m) => String(m._id) === String(serverMsg._id)
         );
         if (hasServer) {
-          return {}; // no change necessary
+          return {};
         }
 
         let replaced = false;
         const newMessages = curMessages.map((m) => {
           if (m._id === tempId) {
             replaced = true;
-            return { ...serverMsg }; // replace optimistic
+            const merged = {
+              ...optimisticMessage,
+              ...serverMsg,
+              isOptimistic: false,
+            };
+            if (merged._id) merged._id = String(merged._id);
+            if (merged.senderId) merged.senderId = String(merged.senderId);
+            if (merged.receiverId)
+              merged.receiverId = String(merged.receiverId);
+            return merged;
           }
           return m;
         });
 
         if (!replaced) {
-          // optimistic missing (maybe removed by socket), append if not duplicate
           newMessages.push(serverMsg);
         }
 
@@ -267,16 +272,28 @@ export const useChatStore = create((set, get) => ({
       });
 
       // Update messagesCache in a consistent way (replace tempId if present)
+      // Merge optimistic fields if replacing so url/text are preserved until server has authoritative fields
       set((state) => {
         const cache = { ...(state.messagesCache || {}) };
         const list = Array.isArray(cache[selectedId]) ? cache[selectedId] : [];
-        const replacedList = list.map((m) =>
-          m._id === tempId ? serverMsg : m
-        );
-        // if no replacement and server not present, append
+
+        const replacedList = list.map((m) => {
+          if (m._id === tempId) {
+            const merged = {
+              ...m, // optimistic message in cache
+              ...serverMsg, // server truth overrides
+              isOptimistic: false,
+            };
+            if (merged._id) merged._id = String(merged._id);
+            return merged;
+          }
+          return m;
+        });
+
         const hasServerInList = replacedList.some(
           (m) => String(m._id) === String(serverMsg._id)
         );
+
         const finalList = hasServerInList
           ? replacedList
           : [...replacedList, serverMsg].slice(-200);
@@ -285,7 +302,6 @@ export const useChatStore = create((set, get) => ({
         return { messagesCache: cache };
       });
 
-      // Persist cache if you use that
       if (typeof get()._persistCacheToStorage === "function") {
         get()._persistCacheToStorage();
       }
@@ -603,6 +619,12 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", onNewMessage);
     socket.on("typing", onTyping);
 
+    socket.on("deleteMessage", ({ messageId }) => {
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== messageId),
+      }));
+    });
+
     console.log("[chat store] subscribed to socket events");
   },
 
@@ -644,6 +666,18 @@ export const useChatStore = create((set, get) => ({
       );
     } catch (err) {
       console.error("Failed to persist message cache:", err);
+    }
+  },
+
+  deleteMessage: async (messageId) => {
+    try {
+      await axiosInstance.delete(`/messages/delete/${messageId}`);
+
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== messageId),
+      }));
+    } catch (err) {
+      console.log("Delete message failed:", err, err?.response?.data || err.message);
     }
   },
 }));

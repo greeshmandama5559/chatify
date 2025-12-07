@@ -5,8 +5,10 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useEffect, useRef, useState } from "react";
 import MessageInput from "./MessageInput";
 import MessagesLoadingSkeleton from "./MessagesLoadingSkeleton";
-import { LoaderCircle, DownloadCloud, X } from "lucide-react";
+import { LoaderCircle, DownloadCloud, X, Trash2 } from "lucide-react";
 import ImageWithLoader from "./chat-container-components/ImageWithLoader";
+import LinkifyText from "./chat-container-components/LinkifyText";
+import VideoCallContainer from "./chat-container-components/VideoCallContainer";
 
 function ChatContainer() {
   const {
@@ -15,8 +17,9 @@ function ChatContainer() {
     selectedUser,
     isMessagesLoading,
     typingStatuses,
+    deleteMessage,
   } = useChatStore();
-  const { authUser } = useAuthStore();
+  const { authUser, socket, connectSocket } = useAuthStore();
 
   const chatRef = useRef(null);
   const endRef = useRef(null);
@@ -25,20 +28,25 @@ function ChatContainer() {
   const prevSelectedUserRef = useRef(null);
   const shouldForceScrollRef = useRef(false);
 
-  // used to detect user-scrolled-away-from-bottom
-
   // modal state for viewing image
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSrc, setModalSrc] = useState(null);
   const [modalIsOptimistic, setModalIsOptimistic] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  const isDeclined = messages.isDeclined;
+
+  useEffect(() => {
+    if (authUser && (!socket || !socket.connected)) {
+      connectSocket();
+    }
+  }, [authUser, connectSocket, socket]);
+
   useEffect(() => {
     const el = chatRef.current;
     if (!el) return;
 
     const onScroll = () => {
-      // Consider 'near bottom' threshold in px
       const threshold = 150;
       const distanceFromBottom =
         el.scrollHeight - el.scrollTop - el.clientHeight;
@@ -46,8 +54,6 @@ function ChatContainer() {
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
-
-    // initialize
     onScroll();
 
     return () => {
@@ -62,25 +68,19 @@ function ChatContainer() {
 
   useEffect(() => {
     if (!selectedUser?._id) return;
-    // when switching to a new chat, we want to show the bottom (recent messages)
-    // but only after messages are loaded
     shouldForceScrollRef.current = true;
     prevSelectedUserRef.current = selectedUser._id;
   }, [selectedUser?._id]);
 
   useEffect(() => {
     if (!chatRef.current) return;
-    // Wait for the browser to finish layout/paint
     requestAnimationFrame(() => {
-      // if we explicitly want to force scroll (e.g. chat open)
       if (shouldForceScrollRef.current) {
         endRef.current?.scrollIntoView({ behavior: "auto" });
         shouldForceScrollRef.current = false;
         isAutoScrollRef.current = true;
         return;
       }
-
-      // otherwise, auto-scroll only when user is already near bottom (so new msgs reveal)
       if (isAutoScrollRef.current) {
         endRef.current?.scrollIntoView({ behavior: "smooth" });
       }
@@ -94,13 +94,11 @@ function ChatContainer() {
     });
   };
 
-  // open modal with image
   const openImageModal = (src, isOptimistic = false) => {
     if (!src) return;
     setModalSrc(src);
     setModalIsOptimistic(!!isOptimistic);
     setModalOpen(true);
-    // disable body scroll while modal open
     document.body.style.overflow = "hidden";
   };
 
@@ -111,12 +109,10 @@ function ChatContainer() {
     document.body.style.overflow = "";
   };
 
-  // attempt to download image with fetch->blob, fallback to opening in new tab.
   const downloadImage = async () => {
     if (!modalSrc) return;
     setDownloadLoading(true);
 
-    // derive filename
     let filename = "image";
     try {
       const parts = modalSrc.split("/").pop().split("?")[0];
@@ -128,7 +124,6 @@ function ChatContainer() {
       filename = "image";
     }
 
-    // If data URL, we can just create a link and click it
     if (modalSrc.startsWith("data:")) {
       try {
         const a = document.createElement("a");
@@ -140,7 +135,6 @@ function ChatContainer() {
         setDownloadLoading(false);
         return;
       } catch (err) {
-        // fallback to open in new tab
         console.log(err);
         window.open(modalSrc, "_blank", "noopener");
         setDownloadLoading(false);
@@ -148,7 +142,6 @@ function ChatContainer() {
       }
     }
 
-    // For remote URLs try to fetch as blob (works if CORS allows)
     try {
       const res = await fetch(modalSrc, { mode: "cors" });
       if (!res.ok) throw new Error("Failed to fetch");
@@ -164,7 +157,6 @@ function ChatContainer() {
       setDownloadLoading(false);
       return;
     } catch (err) {
-      // CORS or network error — fallback: open image in new tab so user can right-click -> Save image as...
       console.log(err);
       window.open(modalSrc, "_blank", "noopener");
       setDownloadLoading(false);
@@ -205,7 +197,6 @@ function ChatContainer() {
               return (
                 <div
                   key={msg._id || msg.tempId}
-                  // add transition so the translate is smooth when typing status changes
                   className={`flex items-end gap-2 ${
                     isMine ? "flex-row-reverse" : "flex-row"
                   }`}
@@ -227,52 +218,58 @@ function ChatContainer() {
 
                   {/* Message Bubble */}
                   <div
-                    // If this is the last message and partner is typing, gently lift it.
                     style={
                       isLast && partnerIsTyping
                         ? { transform: "translateY(-16px)" }
                         : undefined
                     }
-                    className={`relative max-w-[80%] px-3 py-2 shadow-lg transition-transform duration-200 mb-2
-          ${
-            isMine
-              ? "bg-gradient-to-br from-cyan-600 to-cyan-700 text-white rounded-2xl rounded-br-sm shadow-cyan-900/20"
-              : "bg-slate-800/90 backdrop-blur-sm text-slate-100 border border-slate-700/50 rounded-2xl rounded-bl-sm shadow-black/10"
-          }
-        `}
+                    className={`relative max-w-[80%] px-3 py-2 shadow-lg transition-transform duration-200 mb-2 group flex items-center flex-col
+                      ${
+                        isMine
+                          ? "bg-gradient-to-br from-cyan-600 to-cyan-700 text-white rounded-2xl rounded-br-sm shadow-cyan-900/20"
+                          : "bg-slate-800/90 backdrop-blur-sm text-slate-100 border border-slate-700/50 rounded-2xl rounded-bl-sm shadow-black/10"
+                      }
+                    `}
                   >
-                    {/* Image Attachment */}
-                    {hasImage && (
-                      <div className="mb-2">
-                        <ImageWithLoader
-                          src={msg.image}
-                          alt="Attachment"
-                          isOptimistic={isOptimistic}
-                          isAutoScrollRef={isAutoScrollRef}
-                          shouldForceScrollRef={shouldForceScrollRef}
-                          endRef={endRef}
-                          className={
-                            isMine
-                              ? "border-cyan-500/30"
-                              : "border-slate-600/30"
-                          }
-                          style={
-                            isLast && partnerIsTyping
-                              ? { transform: "translateY(-16px)" }
-                              : undefined
-                          }
-                          onClick={() =>
-                            openImageModal(msg.image, isOptimistic)
-                          }
-                        />
-                      </div>
-                    )}
+                    {/* If this is a video call message, render call card; otherwise normal content */}
+                    {msg.type === "video_call" ? (
+                      <VideoCallContainer msg={msg} isDeclined={isDeclined} />
+                    ) : (
+                      <>
+                        {/* Image Attachment */}
+                        {hasImage && (
+                          <div className="mb-2">
+                            <ImageWithLoader
+                              src={msg.image}
+                              alt="Attachment"
+                              isOptimistic={isOptimistic}
+                              isAutoScrollRef={isAutoScrollRef}
+                              shouldForceScrollRef={shouldForceScrollRef}
+                              endRef={endRef}
+                              className={
+                                isMine
+                                  ? "border-cyan-500/30"
+                                  : "border-slate-600/30"
+                              }
+                              style={
+                                isLast && partnerIsTyping
+                                  ? { transform: "translateY(-16px)" }
+                                  : undefined
+                              }
+                              onClick={() =>
+                                openImageModal(msg.image, isOptimistic)
+                              }
+                            />
+                          </div>
+                        )}
 
-                    {/* Text Content */}
-                    {msg.text && (
-                      <p className="text-sm leading-tight tracking-wide">
-                        {msg.text}
-                      </p>
+                        {/* Text Content (linkified) */}
+                        {msg.text && (
+                          <p className="text-sm leading-tight tracking-wide break-words">
+                            {LinkifyText(msg.text)}
+                          </p>
+                        )}
+                      </>
                     )}
 
                     {/* Timestamp (Inside Bubble) */}
@@ -282,9 +279,15 @@ function ChatContainer() {
                           ? "justify-end text-cyan-100/70"
                           : "justify-end text-slate-400"
                       }`}
-                    >
+                    > 
                       {formatTime(msg.createdAt)}
                     </div>
+                      <button className={`opacity-0 absolute
+                         ${isMine && "cursor-pointer text-red-500 group-hover:opacity-90 -left-6 bottom-3"}`}
+                        onClick={() => {deleteMessage(msg._id)}} 
+                        >
+                        <Trash2 size={20} />
+                      </button>
                   </div>
                 </div>
               );
@@ -300,7 +303,6 @@ function ChatContainer() {
       <div className="px-4">
         {partnerIsTyping && selectedUser && (
           <div className="flex items-center gap-2 mb-3">
-            {/* Avatar with small ring */}
             <div className="w-7 h-7 rounded-full object-cover border border-slate-700 shadow-sm">
               <img
                 src={selectedUser.profilePic || "/avatar.png"}
@@ -310,9 +312,7 @@ function ChatContainer() {
               />
             </div>
 
-            {/* Typing bubble */}
             <div className=" backdrop-blur-sm text-slate-100 text-xs rounded-full px-1 py-1 flex items-center gap-3">
-              {/* Animated dots */}
               <div className="flex items-center gap-1">
                 <span
                   className="inline-block w-2 h-2 rounded-full bg-slate-300/80 animate-bounce"
@@ -334,7 +334,6 @@ function ChatContainer() {
                 />
               </div>
 
-              {/* Text */}
               <span className="text-slate-300/90"></span>
             </div>
           </div>
@@ -351,12 +350,10 @@ function ChatContainer() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
           onClick={closeModal}
         >
-          {/* Clicking backdrop closes modal; stop propagation on content */}
           <div
             className="relative max-w-[95vw] max-h-[95vh] p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               onClick={closeModal}
               aria-label="Close image"
@@ -365,7 +362,6 @@ function ChatContainer() {
               <X size={18} className="text-white" />
             </button>
 
-            {/* Download button */}
             <button
               onClick={downloadImage}
               aria-label="Download image"
@@ -378,20 +374,17 @@ function ChatContainer() {
               )}
             </button>
 
-            {/* Image container */}
             <div className="rounded-lg bg-black/90 p-2 max-w-[95vw] max-h-[95vh] flex items-center justify-center">
               <img
                 src={modalSrc}
                 alt="Preview"
                 className="max-w-[72vw] max-h-[82vh] object-contain rounded"
                 onError={(e) => {
-                  // show fallback by replacing src (or you can show message)
                   e.currentTarget.src = "/image-fallback.png";
                 }}
               />
             </div>
 
-            {/* Optional caption / optimistic notice */}
             {modalIsOptimistic && (
               <div className="mt-2 text-xs text-white/70 text-center">
                 Uploading (preview)
