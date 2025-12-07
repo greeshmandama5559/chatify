@@ -1,5 +1,5 @@
 import ChatHeader from "./ChatHeader";
-import NoChatHistoryPlaceholder from "./NoChatHistoryPlaceHolder";
+import NoChatHistoryPlaceholder from "./NoChatHistoryPlaceholder";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { useEffect, useRef, useState } from "react";
