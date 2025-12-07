@@ -14,11 +14,17 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      trim: true
+      trim: true,
     },
     image: {
       type: String,
     },
+    type: {
+      type: String,
+      enum: ["text", "image", "video_call"],
+      default: "text",
+    },
+    url: { type: String },
   },
   { timestamps: true }
 );

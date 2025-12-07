@@ -16,6 +16,10 @@ const ENV = {
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
     ARCJET_KEY: process.env.ARCJET_KEY,
     ARCJET_ENV: process.env.ARCJET_ENV,
+    STREAM_API_KEY: process.env.STREAM_API_KEY,
+    STREAM_API_SECRET: process.env.STREAM_API_SECRET,
+    EMAIL_PASS: process.env.EMAIL_PASS,
+    EMAIL_SENDER: process.env.EMAIL_SENDER,
 }
 
 export default ENV;
