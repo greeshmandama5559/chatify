@@ -17,10 +17,5 @@
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/greeshmandama5559/chatify/issues"
-  },
-  "homepage": "https://github.com/greeshmandama5559/chatify#readme",
-  "dependencies": {
-    "@tailwindcss/vite": "^4.1.17",
-    "tailwindcss": "^4.1.17"
   }
 }
