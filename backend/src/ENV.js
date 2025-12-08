@@ -20,6 +20,8 @@ const ENV = {
     STREAM_API_SECRET: process.env.STREAM_API_SECRET,
     EMAIL_PASS: process.env.EMAIL_PASS,
     EMAIL_SENDER: process.env.EMAIL_SENDER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    SMTP_USER: process.env.SMTP_USER,
 }
 
 export default ENV;

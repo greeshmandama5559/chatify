@@ -75,6 +75,7 @@ export const signup = async (req, res) => {
       });
     } catch (err) {
       console.error("Failed to send verification email:", err);
+      return res.status(400).json({ message:  "Failed to send verification email"});
     }
 
     return res.status(200).json({
