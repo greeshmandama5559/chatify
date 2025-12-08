@@ -9,6 +9,7 @@ import {
   verifyEmail,
   resetPassword,
   deleteUser,
+  resendOtp,
 } from "../controller/auth.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
@@ -26,6 +27,8 @@ route.get("/test", (req, res) => {
 route.post("/signup", signup);
 
 route.post("/verify-email", verifyEmail);
+
+route.post("/resend-otp", resendOtp)
 
 route.post("/login", login);
 

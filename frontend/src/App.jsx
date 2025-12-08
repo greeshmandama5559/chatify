@@ -11,38 +11,39 @@ import CallPage from "./pages/CallPage";
 import EmailVerification from "./pages/EmailVerification";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-  const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
-    const {isAuthenticated, deleteUser, authUser } = useAuthStore();
-    if (!isAuthenticated) {
-      return <Navigate to="/login" replace />;
-    }
+const RedirectAuthenticatedUser = ({ children }) => {
+  const { authUser, isAuthenticated } = useAuthStore();
+  if (isAuthenticated && authUser?.isVerified) {
+    return <Navigate to="/" replace />;
+  }
 
-    if (!authUser.isVerified) {
-      deleteUser(authUser._id);
-      return <Navigate to="/signup" replace />
-    }
-
-    return children;
-  };
-
-  // redirect authenticated users to the home page
-  const RedirectAuthenticatedUser = ({ children }) => {
-
-    const {authUser, isAuthenticated } = useAuthStore();
-    if (isAuthenticated && authUser?.isVerified) {
-      return <Navigate to="/" replace />; 
-    }
-
-    return children;
-  };
+  return children;
+};
 
 function App() {
-  const { checkAuth, isCheckingAuth, isAuthenticated } = useAuthStore();
+  const { checkAuth, isCheckingAuth } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    const onBack = () => {
+      const { setSelectedUser } = useChatStore.getState();
+      setSelectedUser(null); // go back to chats
+    };
+
+    window.addEventListener("popstate", onBack);
+    return () => window.removeEventListener("popstate", onBack);
+  }, []);
 
   const socket = useAuthStore((s) => s.socket);
   const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
@@ -64,14 +65,17 @@ function App() {
       <Routes>
         <Route
           index
-          element={ 
+          element={
             <ProtectedRoute>
               <ChatPage />
             </ProtectedRoute>
           }
         />
 
-        <Route path="/verify-email" element={isAuthenticated ? <EmailVerification /> : <SignupPage />} />
+        <Route
+          path="/verify-email"
+          element={<EmailVerification />}
+        />
 
         <Route
           path="/signup"
@@ -98,13 +102,13 @@ function App() {
           }
         />
         <Route
-					path='/reset-password/:token'
-					element={
-						<RedirectAuthenticatedUser>
-							<ResetPasswordPage />
-						</RedirectAuthenticatedUser>
-					}
-				/>
+          path="/reset-password/:token"
+          element={
+            <RedirectAuthenticatedUser>
+              <ResetPasswordPage />
+            </RedirectAuthenticatedUser>
+          }
+        />
       </Routes>
 
       <Toaster position="top-center" />

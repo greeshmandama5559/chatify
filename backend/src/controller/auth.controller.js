@@ -5,6 +5,7 @@ import ENV from "../ENV.js";
 import cloudinary from "../lib/cloudinary.js";
 import { generateStreamToken } from "../lib/stream.js";
 import crypto from "crypto";
+import PendingUser from "../models/PendingUser.js";
 import {
   sendVerificationEmail,
   sendWelcomeEmail,
@@ -12,23 +13,21 @@ import {
   sendPasswordResetEmail,
 } from "../emails/sendEmail.js";
 
+//--------------------signup-----------------------------------------------
 export const signup = async (req, res) => {
   const { fullName, Email, Password } = req.body;
+
   try {
     if (!fullName || !Email || !Password) {
-      return res.status(400).json({ message: "All Fields Are Required" });
+      return res.status(400).json({ message: "All fields are required" });
     }
 
     if (Password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters" });
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    if (fullName.length < 3) {
-      return res
-        .status(400)
-        .json({ message: "Name must contain at least 3 letters" });
+    if (fullName.trim().length < 3) {
+      return res.status(400).json({ message: "Name must contain at least 3 letters" });
     }
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -36,65 +35,61 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Invalid email" });
     }
 
-    const user = await User.findOne({ Email });
-    if (user) return res.status(400).json({ message: "User already exists." });
+    // If a user already exists (verified user), block signup
+    const existingUser = await User.findOne({ Email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists. Please login" });
+    }
 
-    const userName = await User.findOne({ fullName });
-    if (userName)
-      return res.status(400).json({ message: "User Name already exists." });
+    const existingUserName = await User.findOne({ fullName });
+    if (existingUserName) {
+      return res.status(400).json({ message: "User name already exists, Please try different one" });
+    }
+
+    // If a pending user already exists, remove it (or update) — here we remove and create a fresh one
+    await PendingUser.deleteOne({ Email });
 
     const updatedFullName = fullName.trim().replace(/\s+/g, " ");
 
     const salt = await bcrypt.genSalt(12);
-    const hashedSalt = await bcrypt.hash(Password, salt);
+    const hashed = await bcrypt.hash(Password, salt);
 
-    const verificationToken = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-    const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    const newUser = new User({
+    const pending = new PendingUser({
       fullName: updatedFullName,
       Email,
-      Password: hashedSalt,
+      Password: hashed,
       verificationToken,
       verificationTokenExpiresAt,
     });
 
-    if (newUser) {
-      const savedUser = await newUser.save();
-      generateToken(savedUser._id, res);
+    await pending.save();
 
-      try {
-        await sendVerificationEmail({
-          to: Email,
-          subject: "Verify Your Email",
-          ver: verificationToken,
-        });
-      } catch (error) {
-        console.error("failed to send welcome email: ", error);
-      }
-
-      res.status(201).json({
-        _id: savedUser._id,
-        fullName: savedUser.fullName,
-        Email: savedUser.Email,
-        profilePic: savedUser.profilePic,
-        isVerified: savedUser.isVerified,
+    // send verification email (best-effort)
+    try {
+      await sendVerificationEmail({
+        to: Email,
+        subject: "Verify Your Email",
+        ver: verificationToken,
       });
-    } else {
-      return res.status(400).json({ message: "invalid data" });
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
     }
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent to your email. Please verify to complete signup.",
+      Email,
+    });
   } catch (error) {
-    console.log("error occured while signup: ", error);
-    if (!res.headersSent) {
-      res
-        .status(500)
-        .json({ message: "something went wrong please try again later" });
-    }
+    console.error("error occurred while signup:", error);
+    return res.status(500).json({ message: "Something went wrong. Please try again later." });
   }
 };
 
+//--------------------verifyEmail-----------------------------------------------
 export const verifyEmail = async (req, res) => {
   const { otp } = req.body;
   try {
@@ -102,38 +97,94 @@ export const verifyEmail = async (req, res) => {
       return res.status(400).json({ message: "OTP is required" });
     }
 
-    const user = await User.findOne({
+    const pending = await PendingUser.findOne({
       verificationToken: otp,
       verificationTokenExpiresAt: { $gt: new Date() },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: "Invalid OTP" });
+    if (!pending) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpiresAt = undefined;
-    await user.save();
+    const existingUser = await User.findOne({ Email: pending.Email });
+    if (existingUser) {
+      await PendingUser.deleteOne({ Email: pending.Email });
+      return res.status(400).json({ message: "User already exists. Please login." });
+    }
 
-    await sendWelcomeEmail({
-      to: user.Email,
-      subject: "Email Verified Successfully",
-      name: user.fullName,
-      url: ENV.CLIENT_URL,
+    const user = new User({
+      fullName: pending.fullName,
+      Email: pending.Email,
+      Password: pending.Password,
+      isVerified: true,
     });
 
-    res.status(200).json({
-      ...user._doc,
-      password: undefined,
-    });
+    const savedUser = await user.save();
+
+    await PendingUser.deleteOne({ Email: pending.Email });
+
+    try {
+      await sendWelcomeEmail({
+        to: savedUser.Email,
+        subject: "Welcome! Your email is verified",
+        name: savedUser.fullName,
+        url: ENV.CLIENT_URL,
+      });
+    } catch (err) {
+      console.error("Failed to send welcome email:", err);
+    }
+
+    generateToken(savedUser._id, res);
+
+    const userObj = {
+      _id: savedUser._id,
+      fullName: savedUser.fullName,
+      Email: savedUser.Email,
+      profilePic: savedUser.profilePic,
+      isVerified: savedUser.isVerified,
+    };
+
+    return res.status(200).json(userObj);
   } catch (error) {
-    console.error("error in verifyEmail controller: ", error);
-    if (!res.headersSent) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
+    console.error("error in verifyEmail controller:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+//--------------------resendOtp-----------------------------------------------
+export const resendOtp = async (req, res) => {
+  try {
+    const { Email } = req.body;
+    if (!Email) return res.status(400).json({ message: "Email required" });
+
+    const pending = await PendingUser.findOne({ Email });
+    if (!pending) return res.status(404).json({ message: "No pending signup found for this email" });
+
+    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    pending.verificationToken = verificationToken;
+    pending.verificationTokenExpiresAt = verificationTokenExpiresAt;
+    await pending.save();
+
+    try {
+      await sendVerificationEmail({
+        to: Email,
+        subject: "Your verification code",
+        ver: verificationToken,
+      });
+    } catch (err) {
+      console.error("Failed to resend verification email:", err);
+      return res.status(500).json({ message: "Failed to send OTP. Try again later." });
+    }
+
+    return res.status(200).json({ success: true, message: "OTP resent" });
+  } catch (err) {
+    console.error("resendOtp error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 
 export const login = async (req, res) => {
   const { Email, Password } = req.body;
@@ -144,7 +195,7 @@ export const login = async (req, res) => {
 
   try {
     const user = await User.findOne({ Email });
-    if (!user) return res.status(400).json({ message: "Invalid Credentials" });
+    if (!user) return res.status(400).json({ message: "email doesnt exist, please sign up" });
 
     const isPasswordCorrect = await bcrypt.compare(Password, user.Password);
     if (!isPasswordCorrect)

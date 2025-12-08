@@ -65,6 +65,7 @@ function ChatsList() {
               onClick={() => {
                 if (!isSelected){
                   setSelectedUser(chat)
+                  window.history.pushState({ chat: chat._id }, "", `#/chat/${chat._id}`);
                 }
               }}
               aria-pressed={isSelected}
