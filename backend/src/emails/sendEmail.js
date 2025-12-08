@@ -10,11 +10,12 @@ import {
 export const sendVerificationEmail = async ({ to, subject, ver }) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: ENV.EMAIL_SENDER,
-        pass: ENV.EMAIL_PASS,
+        user: ENV.SMTP_USER,
+        pass: ENV.SMTP_PASS,
       },
     });
 
@@ -29,6 +30,7 @@ export const sendVerificationEmail = async ({ to, subject, ver }) => {
     console.log("Email sent successfully");
   } catch (err) {
     console.log("Email send failed:", err);
+    throw new Error(err);
   }
 };
 
