@@ -1,6 +1,5 @@
 import express from 'express';
 import ENV from './ENV.js';
-import path from 'path';
 import authRouter from './routes/auth.route.js';
 import messageRouter from './routes/message.route.js';
 import { connectDB } from './lib/db.js';
@@ -9,8 +8,8 @@ import cors from "cors";
 import { app, server } from './lib/socket.js';
 
 app.use(cors({
-  origin: ENV.CLIENT_URL,  // React dev server
-  credentials: true                 // allow cookies
+  origin: ENV.CLIENT_URL,   // Your Vercel frontend URL
+  credentials: true
 }));
 
 app.use(express.json({ limit: "5mb" }));
@@ -20,18 +19,9 @@ app.use(cookieParser());
 const PORT = ENV.PORT || 3000;
 
 app.use('/api/auth', authRouter);
-app.use('/api/messages', messageRouter)
-
-const __dirname = path.resolve();
-if(ENV.NODE_ENV === "production"){
-    app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-    app.get("*", (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-    })
-}
+app.use('/api/messages', messageRouter);
 
 server.listen(PORT, () => {
-    console.log(`server is running on port ${PORT}...`);
     connectDB();
-})
+    console.log(`server is running on port ${PORT}...`);
+});
