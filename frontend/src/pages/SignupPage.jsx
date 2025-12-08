@@ -20,20 +20,21 @@ function SignUpPage() {
     Email: "",
     Password: "",
   });
-  const { signup, isSigningUp, error } = useAuthStore();
+  const { signup, isSigningUp } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (formData.Password.length < 6){
+      if (formData.Password.length < 6) {
         return toast.error("Password Must Be least 6 characters");
       }
-      
-      await signup(formData);
-      if (!error) {
-        navigate("/verify-email", { replace: true });
+
+      const result = await signup(formData);
+      if (result?.success) {
+        localStorage.setItem("pendingEmail", formData.Email);
+        navigate("/verify-email");
       }
     } catch (error) {
       console.error("Error during signup: ", error);
@@ -41,7 +42,7 @@ function SignUpPage() {
   };
 
   return (
-    <div className="w-full flex items-center justify-center p-4 bg-slate-900">
+    <div className="w-full h-full overflow-hidden flex items-center justify-center p-4 bg-slate-900">
       <div className="relative w-full max-w-5xl md:h-[700px] h-[600px] md:mt-6">
         <BorderAnimatedContainer>
           <div className="w-full flex flex-col md:flex-row ">
@@ -54,7 +55,10 @@ function SignUpPage() {
                   </h2>
                   <p className="text-slate-400">Sign up for a new account</p>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-10">
+                <form
+                  onSubmit={handleSubmit}
+                  className=" space-y-2 md:space-y-10"
+                >
                   <div>
                     <label className="auth-input-label">Full Name</label>
                     <div className="relative">
@@ -125,7 +129,7 @@ function SignUpPage() {
                   </div>
 
                   <button
-                    className="auth-btn"
+                    className="auth-btn mt-2"
                     type="submit"
                     disabled={isSigningUp}
                   >
