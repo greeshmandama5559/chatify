@@ -39,12 +39,12 @@ function LoginPage() {
   };
 
   return (
-    <div className="w-full flex items-center justify-center p-4 md:p-10 bg-slate-900">
+    <div className="w-full h-full overflow-hidden flex items-center justify-center p-4 md:p-10 bg-slate-900">
       <div className="relative w-full max-w-3xl md:max-w-5xl">
         <BorderAnimatedContainer>
           <div className="w-full flex flex-col md:flex-row ">
             {!isChangingPassword && (
-              <div className="md:w-1/2 px-10 py-13 md:py-12 md:px-15 flex items-center justify-center md:border-r border-slate-600/30">
+              <div className="md:w-1/2 px-10 py-10 md:py-12 md:px-15 flex items-center justify-center md:border-r border-slate-600/30">
                 <div className="w-full max-w-md">
                   <div className="text-center mb-10">
                     <MessageCircleIcon className="w-12 h-12 mx-auto text-slate-400 mb-4" />
@@ -56,7 +56,7 @@ function LoginPage() {
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-10">
+                  <form onSubmit={handleSubmit} className=" space-y-3 md:space-y-10">
                     <div>
                       <label className="auth-input-label">Email</label>
                       <div className="relative">
@@ -115,7 +115,7 @@ function LoginPage() {
                     </div>
 
                     <button
-                      className="auth-btn"
+                      className="auth-btn mt-2"
                       type="submit"
                       disabled={isLoggingIn}
                     >

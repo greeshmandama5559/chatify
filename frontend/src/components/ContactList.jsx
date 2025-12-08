@@ -29,7 +29,10 @@ function ContactList() {
         return (
           <button
             key={contact._id}
-            onClick={() => setSelectedUser(contact)}
+            onClick={() => { 
+              setSelectedUser(contact)
+              window.history.pushState({ chat: contact._id }, "", `#/chat/${contact._id}`);
+            }}
             className={`w-full p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group
               ${
                 isSelected

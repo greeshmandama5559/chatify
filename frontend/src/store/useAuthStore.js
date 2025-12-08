@@ -17,6 +17,7 @@ export const useAuthStore = create((set, get) => ({
   socket: null,
   onlineUsers: [],
   error: null,
+  pendingSignup: null,
 
   checkAuth: async () => {
     try {
@@ -39,43 +40,88 @@ export const useAuthStore = create((set, get) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post("/auth/signup", data);
-      set({ authUser: res.data, isAuthenticated: true });
-      toast.success("Otp sent to your email");
-      set({ error: null });
-      if (!get().authUser || get().socket?.connected) return;
-      get().connectSocket();
+
+      set({
+        pendingSignup: {
+          Email: data.Email,
+          fullName: data.fullName || null,
+        },
+        error: null,
+      });
+
+      toast.success(res?.data?.message || "OTP sent to your email");
+
+      return { success: true };
     } catch (error) {
       if (error?.response?.data?.message) {
         toast.error(error.response.data.message);
         set({ error: error.response.data.message });
         console.log("Error in signup page: ", error.response.data);
       } else if (error?.message) {
-        // Network errors, CORS, etc
         toast.error(error.message);
         console.log("Error in signup page (network/CORS): ", error);
       } else {
         toast.error("An unknown error occurred");
         console.log("Error in signup page (unknown): ", error);
       }
+      return {
+        success: false,
+        error: error?.response?.data?.message || error?.message,
+      };
     } finally {
       set({ isSigningUp: false });
     }
   },
 
+  clearPendingSignup: () => set({ pendingSignup: null }),
+
   verifySignUpOtp: async (otp) => {
     set({ isOtpVerifying: true, error: null });
     try {
       const res = await axiosInstance.post("/auth/verify-email", { otp });
-      set({ authUser: res.data, isAuthenticated: true });
+
+      // Backend should now create the real user and return it (plus set cookie)
+      set({ authUser: res.data, isAuthenticated: true, pendingSignup: null });
       toast.success("Account created successfully");
-      if (!get().authUser || get().socket?.connected) return;
+
+      // ensure socket connects
+      if (!get().authUser || get().socket?.connected) return { success: true };
       get().connectSocket();
+      return { success: true };
     } catch (err) {
       console.error("Error in verifySignUpOtp: ", err);
       set({ error: err?.response?.data?.message || "Verification failed" });
-      throw err;
+      return {
+        success: false,
+        error: err?.response?.data?.message || err?.message,
+      };
     } finally {
       set({ isOtpVerifying: false });
+    }
+  },
+
+  resendSignupOtp: async (email) => {
+    set({ isLoading: true });
+    try {
+      const targetEmail = email || get().pendingSignup?.Email;
+      if (!targetEmail) throw new Error("No email available to resend OTP");
+
+      const res = await axiosInstance.post("/auth/resend-otp", {
+        Email: targetEmail,
+      });
+      toast.success(res?.data?.message || "OTP resent");
+      return { success: true };
+    } catch (err) {
+      console.error("resend OTP error:", err);
+      toast.error(
+        err?.response?.data?.message || err?.message || "Failed to resend OTP"
+      );
+      return {
+        success: false,
+        error: err?.response?.data?.message || err?.message,
+      };
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -83,7 +129,7 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoggingIn: true });
     try {
       const res = await axiosInstance.post("/auth/login", data);
-      set({ authUser: res.data, isAuthenticated:true });
+      set({ authUser: res.data, isAuthenticated: true });
 
       toast.success("successfully logged in");
 
@@ -122,10 +168,9 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     console.log("token in reset auth: ", token);
     try {
-      const res = await axiosInstance.post(
-        `/auth/reset-password/${token}`,
-        { Password: password }
-      );
+      const res = await axiosInstance.post(`/auth/reset-password/${token}`, {
+        Password: password,
+      });
       toast.success(res?.data?.message || "password reset successfull");
     } catch (error) {
       console.log("error in update password: ", error?.response?.data?.message);
