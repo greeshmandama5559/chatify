@@ -10,7 +10,8 @@ import {
 export const sendVerificationEmail = async ({ to, subject, ver }) => {
   try {
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
       auth: {
         user: ENV.EMAIL_SENDER,
         pass: ENV.EMAIL_PASS,
@@ -45,7 +46,10 @@ export const sendWelcomeEmail = async ({ to, subject, name, url }) => {
       from: `"ConvoX" <${ENV.EMAIL_SENDER}>`,
       to,
       subject,
-      html: WELCOME_EMAIL_TEMPLATE.replace("{Name}", name).replace("{dashboardLink}", url),
+      html: WELCOME_EMAIL_TEMPLATE.replace("{Name}", name).replace(
+        "{dashboardLink}",
+        url
+      ),
     };
 
     await transporter.sendMail(mailOptions);
@@ -69,7 +73,10 @@ export const sendPasswordResetEmail = async ({ to, subject, resetToken }) => {
       from: `"ConvoX" <${ENV.EMAIL_SENDER}>`,
       to,
       subject,
-      html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", `${ENV.CLIENT_URL}/reset-password/${resetToken}`), 
+      html: PASSWORD_RESET_REQUEST_TEMPLATE.replace(
+        "{resetURL}",
+        `${ENV.CLIENT_URL}/reset-password/${resetToken}`
+      ),
     };
 
     await transporter.sendMail(mailOptions);
