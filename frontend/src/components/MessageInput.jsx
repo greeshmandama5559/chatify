@@ -47,8 +47,7 @@ function MessageInput() {
     }, 1000); // 1s of inactivity -> stop typing
   };
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
+  const handleSendMessage = () => {
     if (!text.trim() && !imagePreview) return;
     if (isSoundEnabled) selectRandomSound();
 
