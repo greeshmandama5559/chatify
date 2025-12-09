@@ -8,6 +8,7 @@ import cors from "cors";
 import { app, server } from './lib/socket.js';
 import passport from "passport";
 import "./utils/passport.js";
+import path from "path";
 
 app.use(cors({
   origin: ENV.CLIENT_URL, 
