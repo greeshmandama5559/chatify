@@ -40,11 +40,11 @@ function LoginPage() {
 
   return (
     <div className="w-full h-full overflow-hidden flex items-center justify-center p-4 md:p-10 bg-slate-900">
-      <div className="relative w-full max-w-3xl md:max-w-5xl">
+      <div className="relative w-full max-w-3xl mb-15 md:max-w-5xl">
         <BorderAnimatedContainer>
           <div className="w-full flex flex-col md:flex-row ">
             {!isChangingPassword && (
-              <div className="md:w-1/2 px-10 py-10 md:py-12 md:px-15 flex items-center justify-center md:border-r border-slate-600/30">
+              <div className="md:w-1/2 px-10 py-10 md:py-8 md:px-15 flex items-center justify-center md:border-r border-slate-600/30">
                 <div className="w-full max-w-md">
                   <div className="text-center mb-10">
                     <MessageCircleIcon className="w-12 h-12 mx-auto text-slate-400 mb-4" />
@@ -56,7 +56,10 @@ function LoginPage() {
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className=" space-y-3 md:space-y-10">
+                  <form
+                    onSubmit={handleSubmit}
+                    className=" space-y-3 md:space-y-5"
+                  >
                     <div>
                       <label className="auth-input-label">Email</label>
                       <div className="relative">
@@ -127,6 +130,34 @@ function LoginPage() {
                     </button>
                   </form>
 
+                  <div className="mt-4">
+                    <div className="flex items-center w-full gap-4 my-4">
+                      <div className="flex-1 h-px bg-slate-600/40"></div>
+                      <span className="text-slate-400 text-sm font-medium">
+                        OR
+                      </span>
+                      <div className="flex-1 h-px bg-slate-600/40"></div>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        (window.location.href =
+                          "http://localhost:3000/api/auth/google")
+                      }
+                      type="button"
+                      className="w-full flex items-center justify-center gap-3 py-3 bg-white/90 hover:bg-white 
+               text-slate-900 font-medium border border-slate-300 rounded-xl shadow-sm opacity-90 cursor-pointer
+               transition-all duration-200 hover:shadow-md hover:opacity-100 active:scale-[0.98] "
+                    >
+                      <img
+                        src="/google-icon.png"
+                        alt="Google icon"
+                        className="w-5 h-5"
+                      />
+                      Continue with Google
+                    </button>
+                  </div>
+
                   <div className="mt-6 text-center">
                     <Link to="/signup" className="auth-link">
                       Dont have an account? Signup
@@ -150,10 +181,7 @@ function LoginPage() {
                   </div>
 
                   {!isSubmitted || error ? (
-                    <form
-                      onSubmit={handlePasswordChange}
-                      className="space-y-0"
-                    >
+                    <form onSubmit={handlePasswordChange} className="space-y-0">
                       <div>
                         <label className="auth-input-label">Email</label>
                         <div className="relative">
@@ -174,7 +202,11 @@ function LoginPage() {
                         </div>
                       </div>
 
-                      {error && <p className="text-red-500 mt-2 font-semibold">{error}</p>}
+                      {error && (
+                        <p className="text-red-500 mt-2 font-semibold">
+                          {error}
+                        </p>
+                      )}
 
                       <div className="flex justify-center items-center w-full h-full">
                         <button
@@ -205,8 +237,8 @@ function LoginPage() {
                         <Mail className="h-8 w-8 text-white" />
                       </motion.div>
                       <p className="text-gray-300 mb-6">
-                        If an account exists for {formData.Email}, you will receive a
-                        password reset link shortly.
+                        If an account exists for {formData.Email}, you will
+                        receive a password reset link shortly.
                       </p>
                     </div>
                   )}

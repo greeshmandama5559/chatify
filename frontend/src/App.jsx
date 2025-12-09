@@ -10,6 +10,7 @@ import { useChatStore } from "./store/useChatStore";
 import CallPage from "./pages/CallPage";
 import EmailVerification from "./pages/EmailVerification";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import GoogleSuccess from "./pages/GoogleSuccess";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -71,6 +72,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/google-success" element={<GoogleSuccess />} />
 
         <Route
           path="/verify-email"

@@ -23,11 +23,15 @@ export const signup = async (req, res) => {
     }
 
     if (Password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
     if (fullName.trim().length < 3) {
-      return res.status(400).json({ message: "Name must contain at least 3 letters" });
+      return res
+        .status(400)
+        .json({ message: "Name must contain at least 3 letters" });
     }
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -37,12 +41,16 @@ export const signup = async (req, res) => {
 
     const existingUser = await User.findOne({ Email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists. Please login" });
+      return res
+        .status(400)
+        .json({ message: "User already exists. Please login" });
     }
 
     const existingUserName = await User.findOne({ fullName });
     if (existingUserName) {
-      return res.status(400).json({ message: "User name already exists, Please try different one" });
+      return res.status(400).json({
+        message: "User name already exists, Please try different one",
+      });
     }
 
     // If a pending user already exists, remove it (or update) — here we remove and create a fresh one
@@ -53,7 +61,9 @@ export const signup = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashed = await bcrypt.hash(Password, salt);
 
-    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const verificationToken = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString(); // 6-digit OTP
     const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     const pending = new PendingUser({
@@ -75,7 +85,9 @@ export const signup = async (req, res) => {
       });
     } catch (err) {
       console.error("Failed to send verification email:", err);
-      return res.status(400).json({ message:  "Failed to send verification email"});
+      return res
+        .status(400)
+        .json({ message: "Failed to send verification email" });
     }
 
     return res.status(200).json({
@@ -85,7 +97,9 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     console.error("error occurred while signup:", error);
-    return res.status(500).json({ message: "Something went wrong. Please try again later." });
+    return res
+      .status(500)
+      .json({ message: "Something went wrong. Please try again later." });
   }
 };
 
@@ -109,7 +123,9 @@ export const verifyEmail = async (req, res) => {
     const existingUser = await User.findOne({ Email: pending.Email });
     if (existingUser) {
       await PendingUser.deleteOne({ Email: pending.Email });
-      return res.status(400).json({ message: "User already exists. Please login." });
+      return res
+        .status(400)
+        .json({ message: "User already exists. Please login." });
     }
 
     const user = new User({
@@ -158,9 +174,14 @@ export const resendOtp = async (req, res) => {
     if (!Email) return res.status(400).json({ message: "Email required" });
 
     const pending = await PendingUser.findOne({ Email });
-    if (!pending) return res.status(404).json({ message: "No pending signup found for this email" });
+    if (!pending)
+      return res
+        .status(404)
+        .json({ message: "No pending signup found for this email" });
 
-    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationToken = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
     const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     pending.verificationToken = verificationToken;
@@ -175,7 +196,9 @@ export const resendOtp = async (req, res) => {
       });
     } catch (err) {
       console.error("Failed to resend verification email:", err);
-      return res.status(500).json({ message: "Failed to send OTP. Try again later." });
+      return res
+        .status(500)
+        .json({ message: "Failed to send OTP. Try again later." });
     }
 
     return res.status(200).json({ success: true, message: "OTP resent" });
@@ -184,7 +207,6 @@ export const resendOtp = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 export const login = async (req, res) => {
   const { Email, Password } = req.body;
@@ -195,7 +217,10 @@ export const login = async (req, res) => {
 
   try {
     const user = await User.findOne({ Email });
-    if (!user) return res.status(400).json({ message: "email doesnt exist, please sign up" });
+    if (!user)
+      return res
+        .status(400)
+        .json({ message: "email doesnt exist, please sign up" });
 
     const isPasswordCorrect = await bcrypt.compare(Password, user.Password);
     if (!isPasswordCorrect)
@@ -275,11 +300,9 @@ export const resetPassword = async (req, res) => {
     }
 
     if (typeof Password !== "string" || Password.trim().length < 6) {
-      return res
-        .status(400)
-        .json({
-          message: "Password must be a string of at least 6 characters",
-        });
+      return res.status(400).json({
+        message: "Password must be a string of at least 6 characters",
+      });
     }
 
     const user = await User.findOne({
@@ -317,6 +340,28 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+export const googleSuccess = async (req, res) => {
+  try {
+    let user = req.user;
+
+    if (!user.googleId) {
+      const found = await User.findById(user._id);
+      if (found && !found.googleId) {
+        found.googleId = user.googleId || req.user.googleId;
+        await found.save();
+        user = found;
+      }
+    }
+
+    const token = generateToken(user._id, res);
+
+    res.redirect(`${ENV.CLIENT_URL}/google-success?token=${token}`);
+  } catch (error) {
+    console.log("error in googlesuccess: ", error);
+    return res.status(500).send("Authentication error");
+  }
+};
+
 export const logout = async (_, res) => {
   res.cookie("jwt", "", { maxAge: 0 });
   res.status(200).json({ message: "logout successful" });
@@ -336,6 +381,29 @@ export const updateProfile = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePic: uploadResponse.secure_url },
+      { new: true }
+    );
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error("error in updating profile: ", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+};
+
+export const updateProfileName = async (req, res) => {
+  try {
+    const { fullName } = req.body;
+    if (!fullName)
+      return res.status(400).json({ message: "name is required" });
+
+    const userId = req.user._id;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { fullName: fullName },
       { new: true }
     );
 
