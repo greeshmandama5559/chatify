@@ -10,7 +10,7 @@ import passport from "passport";
 import "./utils/passport.js";
 
 app.use(cors({
-  origin: ENV.CLIENT_URL,   // Your Vercel frontend URL
+  origin: ENV.CLIENT_URL, 
   credentials: true
 }));
 
@@ -24,6 +24,14 @@ const PORT = ENV.PORT || 3000;
 
 app.use('/api/auth', authRouter);
 app.use('/api/messages', messageRouter);
+
+if (ENV.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+  app.get("*", (_, res) => {
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+  });
+}
 
 server.listen(PORT, () => {
     connectDB();
