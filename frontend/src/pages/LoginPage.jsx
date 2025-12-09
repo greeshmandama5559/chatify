@@ -142,7 +142,7 @@ function LoginPage() {
                     <button
                       onClick={() =>
                         (window.location.href =
-                          `${import.meta.env.REACT_APP_BACKEND_URL}/api/auth/google`)
+                          `${import.meta.env.VITE_REACT_APP_BACKEND_URL}/api/auth/google`)
                       }
                       type="button"
                       className="w-full flex items-center justify-center gap-3 py-3 bg-white/90 hover:bg-white 
