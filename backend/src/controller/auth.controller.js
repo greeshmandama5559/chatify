@@ -355,6 +355,8 @@ export const googleSuccess = async (req, res) => {
 
     const token = generateToken(user._id, res);
 
+    console.log("googleSuccess token:", token, "user: ",user._id);
+
     res.redirect(`${ENV.CLIENT_URL}/google-success?token=${token}`);
   } catch (error) {
     console.log("error in googlesuccess: ", error);
