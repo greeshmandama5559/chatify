@@ -43,7 +43,7 @@ function SignUpPage() {
 
   return (
     <div className="w-full h-full overflow-hidden flex items-center justify-center p-4 bg-slate-900">
-      <div className="relative w-full max-w-5xl md:h-[700px] h-[600px] md:mt-6">
+      <div className="relative w-full max-w-5xl md:h-[700px] h-full mb-15">
         <BorderAnimatedContainer>
           <div className="w-full flex flex-col md:flex-row ">
             <div className="md:w-1/2 p-8 md:px-13 flex items-center justify-center md:border-r border-slate-600/30">
@@ -57,7 +57,7 @@ function SignUpPage() {
                 </div>
                 <form
                   onSubmit={handleSubmit}
-                  className=" space-y-2 md:space-y-10"
+                  className=" space-y-3 md:space-y-5"
                 >
                   <div>
                     <label className="auth-input-label">Full Name</label>
@@ -140,6 +140,34 @@ function SignUpPage() {
                     )}
                   </button>
                 </form>
+
+                <div className="mt-4">
+                  <div className="flex items-center w-full gap-4 my-4">
+                    <div className="flex-1 h-px bg-slate-600/40"></div>
+                    <span className="text-slate-400 text-sm font-medium">
+                      OR
+                    </span>
+                    <div className="flex-1 h-px bg-slate-600/40"></div>
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      (window.location.href =
+                        "http://localhost:3000/api/auth/google")
+                    }
+                    type="button"
+                    className="w-full flex items-center justify-center gap-3 py-3 bg-white/90 hover:bg-white 
+               text-slate-900 font-medium border border-slate-300 rounded-xl shadow-sm opacity-90 cursor-pointer
+               transition-all duration-200 hover:shadow-md hover:opacity-100 active:scale-[0.98] "
+                  >
+                    <img
+                      src="/google-icon.png"
+                      alt="Google icon"
+                      className="w-5 h-5"
+                    />
+                    Continue with Google
+                  </button>
+                </div>
 
                 <div className="mt-6 text-center">
                   <Link to="/login" className="auth-link">

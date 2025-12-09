@@ -135,7 +135,7 @@ function ChatHeader() {
         {/* Username */}
         <div className="min-w-0">
           <h3 className="text-slate-100 font-semibold tracking-wide truncate">
-            {selectedUser.fullName}
+            {selectedUser.fullName} 
           </h3>
           <p
             className={`text-xs font-medium mt-1 ${

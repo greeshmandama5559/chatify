@@ -21,6 +21,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    googleId: {
+      type:String,
+    },
     isVerified: {
       type: Boolean,
       default: false,
