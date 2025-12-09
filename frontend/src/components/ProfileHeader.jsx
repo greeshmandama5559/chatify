@@ -97,7 +97,6 @@ function ProfileHeader() {
 
   const onNameKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
       saveName();
     } else if (e.key === "Escape") {
       cancelEditing();
