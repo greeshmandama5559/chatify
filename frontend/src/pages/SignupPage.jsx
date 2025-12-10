@@ -152,7 +152,7 @@ function SignUpPage() {
 
                   <button
                     onClick={() =>
-                      (window.location.href = `/api/auth/google`)
+                      (window.location.href = `${import.meta.env.VITE_BACKEN_URL}/api/auth/google`)
                     }
                     type="button"
                     className="w-full flex items-center justify-center gap-3 py-3 bg-white/90 hover:bg-white 
