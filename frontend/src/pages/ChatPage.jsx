@@ -34,7 +34,7 @@ function ChatPage() {
         {/* - On mobile: shown fullscreen when a chat is selected, hidden otherwise.
             - On md+: always visible as the right column. */}
         <div
-          className={`flex-1 h-full flex flex-col bg-slate-900 backdrop-blur-sm md:rounded-r-2xl
+          className={`flex-1 h-full min-h-0 flex flex-col bg-slate-900 backdrop-blur-sm md:rounded-r-2xl
             ${selectedUser ? "flex w-full" : "hidden md:flex flex-1"}`}
         >
 

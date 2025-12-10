@@ -168,15 +168,13 @@ function ChatContainer() {
     ? !!typingStatuses[selectedUser._id]
     : false;
 
-  console.log("Rendering ChatContainer, partnerIsTyping:", partnerIsTyping);
-
   return (
-    <div className="flex flex-col h-full bg-slate-950 rounded-r-2xl overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 bg-slate-950 rounded-r-2xl">
       <ChatHeader />
 
       <div
         ref={chatRef}
-        className="flex-1 py-4 px-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+        className="flex-1 min-h-0 py-4 px-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
       >
         {isMessagesLoading ? (
           <MessagesLoadingSkeleton />

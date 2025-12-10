@@ -46,14 +46,6 @@ export const signup = async (req, res) => {
         .json({ message: "User already exists. Please login" });
     }
 
-    const existingUserName = await User.findOne({ fullName });
-    if (existingUserName) {
-      return res.status(400).json({
-        message: "User name already exists, Please try different one",
-      });
-    }
-
-    // If a pending user already exists, remove it (or update) — here we remove and create a fresh one
     await PendingUser.deleteOne({ Email });
 
     const updatedFullName = fullName.trim().replace(/\s+/g, " ");
@@ -78,11 +70,14 @@ export const signup = async (req, res) => {
 
     // send verification email (best-effort)
     try {
-      await sendVerificationEmail({
+      const mailRes = await sendVerificationEmail({
         to: Email,
         subject: "Verify Your Email",
         ver: verificationToken,
       });
+      if(!mailRes.ok){
+        return res.status(400).json({message: "failed to send verification code."});
+      }
     } catch (err) {
       console.error("Failed to send verification email:", err);
       return res
