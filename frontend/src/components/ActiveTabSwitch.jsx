@@ -70,7 +70,7 @@ function ActiveTabSwitch() {
           }`}
           aria-pressed={activeTab === "contacts"}
         >
-          Contacts
+          Users
         </button>
       </div>
     </div>
