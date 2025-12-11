@@ -78,8 +78,11 @@ function ChatHeader() {
       return toast.error("Chat channel is not ready yet. Please try again.");
     }
 
-    // channel is a string (channelId) — use it directly
-    const callUrl = `${import.meta.env.VITE_BACKEN_URL}/call/${channel}`;
+    const isProd = import.meta.env.PROD; // true only when built for production
+    const BASE = isProd
+      ? "https://convox-lien.onrender.com"
+      : window.location.origin;
+    const callUrl = `${BASE}/call/${channel}`;
     console.log("Generated call URL:", callUrl);
 
     // Send plain text containing the url. LinkifyText in the message renderer
@@ -135,7 +138,7 @@ function ChatHeader() {
         {/* Username */}
         <div className="min-w-0">
           <h3 className="text-slate-100 font-semibold tracking-wide truncate">
-            {selectedUser.fullName} 
+            {selectedUser.fullName}
           </h3>
           <p
             className={`text-xs font-medium mt-1 ${
