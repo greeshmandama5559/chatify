@@ -79,7 +79,7 @@ function ChatHeader() {
     }
 
     // channel is a string (channelId) — use it directly
-    const callUrl = `${window.location.origin}/call/${channel}`;
+    const callUrl = `${import.meta.env.VITE_BACKEN_URL}/call/${channel}`;
     console.log("Generated call URL:", callUrl);
 
     // Send plain text containing the url. LinkifyText in the message renderer
