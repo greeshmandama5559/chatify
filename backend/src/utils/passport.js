@@ -20,11 +20,10 @@ passport.use(
         let user = await User.findOne({ googleId: id });
 
         if (!user) {
-          user = await User.findOne({ email });
+          user = await User.findOne({ Email: email });
 
           if (user) {
             user.googleId = id;
-            user.profilePic = photos?.[0]?.value;
             await user.save();
           } else {
             user = await User.create({

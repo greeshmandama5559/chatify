@@ -3,7 +3,8 @@ import { useParams } from "react-router";
 import { useAuthStore } from "../store/useAuthStore";
 import { useQuery } from "@tanstack/react-query";
 import { getStreamToken } from "../store/api";
-import PageLoader from "../components/PageLoader";
+// import PageLoader from "../components/PageLoader";
+import VideoLoader from "../loaders/VideoCallLoader";
 import { useNavigate } from "react-router";
 
 import {
@@ -143,9 +144,7 @@ const CallPage = () => {
             </StreamCall>
           </StreamVideo>
         ) : (
-          <div className="z-100 flex items-center justify-center w-full h-full">
-            <PageLoader />
-          </div>
+            <VideoLoader />
         )}
       </div>
     </div>
@@ -158,7 +157,7 @@ const CallContent = () => {
 
   const navigate = useNavigate();
 
-  if (callingState === CallingState.JOINING) return <PageLoader />;
+  if (callingState === CallingState.JOINING) return <VideoLoader />;
 
   if (callingState === CallingState.LEFT) {
     navigate("/");

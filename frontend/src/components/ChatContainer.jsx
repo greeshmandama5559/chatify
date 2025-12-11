@@ -179,7 +179,7 @@ function ChatContainer() {
         {isMessagesLoading ? (
           <MessagesLoadingSkeleton />
         ) : messages.length > 0 ? (
-          <div className="flex flex-col space-y-3">
+          <div className="flex flex-col space-y-3 mt-2">
             {messages.map((msg, idx) => {
               const isMine = msg.senderId === authUser._id;
               const profilePic = isMine
