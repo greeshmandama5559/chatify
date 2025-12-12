@@ -169,7 +169,10 @@ function ChatContainer() {
     : false;
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-slate-950 rounded-r-2xl">
+    <div
+      className="flex flex-col min-h-0 bg-slate-950 rounded-r-2xl"
+      style={{ minHeight: "calc(var(--vh,1vh)*100)" }}
+    >
       <ChatHeader />
 
       <div
@@ -194,7 +197,9 @@ function ChatContainer() {
                 msg.plainText ??
                 msg.plain_text ??
                 msg.textPlain ??
-                (!msg.cipherText && typeof msg.text === "string" ? msg.text : null);
+                (!msg.cipherText && typeof msg.text === "string"
+                  ? msg.text
+                  : null);
 
               // is this the last rendered message?
               const isLast = idx === messages.length - 1;
@@ -297,7 +302,8 @@ function ChatContainer() {
                     </div>
                     <button
                       className={`opacity-0 absolute ${
-                        isMine && "cursor-pointer text-red-500 group-hover:opacity-90 -left-6 bottom-3"
+                        isMine &&
+                        "cursor-pointer text-red-500 group-hover:opacity-90 -left-6 bottom-3"
                       }`}
                       onClick={() => {
                         deleteMessage(msg._id);

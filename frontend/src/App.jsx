@@ -37,6 +37,19 @@ function App() {
   }, [checkAuth]);
 
   useEffect(() => {
+    const setVh = () => {
+      document.documentElement.style.setProperty(
+        "--vh",
+        `${window.innerHeight * 0.01}px`
+      );
+    };
+
+    setVh();
+    window.addEventListener("resize", setVh);
+    return () => window.removeEventListener("resize", setVh);
+  }, []);
+
+  useEffect(() => {
     const onBack = () => {
       const { setSelectedUser } = useChatStore.getState();
       setSelectedUser(null); // go back to chats
@@ -75,10 +88,7 @@ function App() {
 
         <Route path="/google-success" element={<GoogleSuccess />} />
 
-        <Route
-          path="/verify-email"
-          element={<EmailVerification />}
-        />
+        <Route path="/verify-email" element={<EmailVerification />} />
 
         <Route
           path="/signup"
