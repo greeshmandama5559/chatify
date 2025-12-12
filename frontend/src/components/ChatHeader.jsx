@@ -104,7 +104,7 @@ function ChatHeader() {
   }, [setSelectedUser]);
 
   return (
-    <div className="flex justify-between items-center min-h-0 p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md top-0 z-10">
+    <div className="sticky top-0 z-30 flex justify-between items-center min-h-0 p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md">
       {/* LEFT SECTION */}
       <div className="flex items-center space-x-4 min-w-0">
         {/* BACK BUTTON (mobile only) */}
