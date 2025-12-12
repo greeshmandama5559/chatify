@@ -189,6 +189,13 @@ function ChatContainer() {
               const isOptimistic = !!msg.isOptimistic;
               const hasImage = !!msg.image;
 
+              // prefer stored plainText (populated by store) if available
+              const plainText =
+                msg.plainText ??
+                msg.plain_text ??
+                msg.textPlain ??
+                (!msg.cipherText && typeof msg.text === "string" ? msg.text : null);
+
               // is this the last rendered message?
               const isLast = idx === messages.length - 1;
 
@@ -261,11 +268,19 @@ function ChatContainer() {
                           </div>
                         )}
 
-                        {/* Text Content (linkified) */}
-                        {msg.text && (
+                        {/* Text Content (prefer plainText only) */}
+                        {plainText ? (
                           <p className="text-sm leading-tight tracking-wide break-words">
-                            {LinkifyText(msg.text)}
+                            {LinkifyText(plainText)}
                           </p>
+                        ) : msg.cipherText ? (
+                          <span className="text-sm leading-tight tracking-wide italic text-slate-400">
+                            Encrypted message
+                          </span>
+                        ) : (
+                          <span className="text-sm leading-tight tracking-wide italic text-slate-400">
+                            No message
+                          </span>
                         )}
                       </>
                     )}
@@ -277,15 +292,19 @@ function ChatContainer() {
                           ? "justify-end text-cyan-100/70"
                           : "justify-end text-slate-400"
                       }`}
-                    > 
+                    >
                       {formatTime(msg.createdAt)}
                     </div>
-                      <button className={`opacity-0 absolute
-                         ${isMine && "cursor-pointer text-red-500 group-hover:opacity-90 -left-6 bottom-3"}`}
-                        onClick={() => {deleteMessage(msg._id)}} 
-                        >
-                        <Trash2 size={20} />
-                      </button>
+                    <button
+                      className={`opacity-0 absolute ${
+                        isMine && "cursor-pointer text-red-500 group-hover:opacity-90 -left-6 bottom-3"
+                      }`}
+                      onClick={() => {
+                        deleteMessage(msg._id);
+                      }}
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
                 </div>
               );

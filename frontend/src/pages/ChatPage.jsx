@@ -14,13 +14,13 @@ function ChatPage() {
 
   return (
     // ensure it occupies the full viewport
-    <div className="min-h-screen min-w-screen bg-slate-900">
+    <div className="min-h-0 min-w-screen bg-slate-900">
       <div className="flex flex-col md:flex-row h-screen">
         {/* LEFT SIDE (Contacts/Chats) */}
         {/* - On mobile: hidden when a chat is open (selectedUser exists). 
             - On md+: always visible. */}
         <div
-          className={`w-full md:w-90 h-full bg-slate-800 backdrop-blur-sm flex flex-col md:rounded-l-2xl
+          className={`w-full min-h-0 md:w-90 h-full bg-slate-800 backdrop-blur-sm flex flex-col md:rounded-l-2xl
             ${selectedUser ? "hidden md:flex" : "flex"}`}
         >
           <ProfileHeader />
