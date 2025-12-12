@@ -265,12 +265,12 @@ function MessageInput() {
             {showEmojiPicker && (
               <div
                 ref={pickerRef}
-                className="absolute bottom-full mb-7 -left-50 z-50 shadow-2xl object-cover overflow-hidden"
+                className="absolute bottom-full mb-7 -left-51 z-50 shadow-2xl object-cover overflow-hidden"
                 style={{ transform: "translateY(-4px)" }}
               >
                 <EmojiPicker
                   onEmojiClick={addEmoji}
-                  theme="auto"
+                  theme="dark"
                   emojiStyle="apple"
                   previewConfig={{ showPreview: false }}
                   searchDisabled={true}
