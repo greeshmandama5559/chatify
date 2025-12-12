@@ -3,17 +3,14 @@ import { useState, useRef, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
-import {
-  XIcon,
-  ImageIcon,
-  SendIcon,
-  Smile,
-} from "lucide-react";
+import { useCryptoStore } from "../store/useCryptoStore";
+import { XIcon, ImageIcon, SendIcon, Smile } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 
 function MessageInput() {
   const { sendMessage, isSoundEnabled, selectedUser } = useChatStore();
-  const { selectRandomSound } = useKeyBoardSound();
+  const kbHook = useKeyBoardSound();
+  const selectRandomSound = kbHook?.selectRandomSound;
   const socket = useAuthStore.getState().socket;
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -23,6 +20,8 @@ function MessageInput() {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  const { encryptMessage } = useCryptoStore();
 
   // typing debounce
   const typingTimeoutRef = useRef(null);
@@ -34,9 +33,12 @@ function MessageInput() {
         setShowEmojiPicker(false);
       }
     }
-    if (showEmojiPicker)
+    if (showEmojiPicker) {
       document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [showEmojiPicker]);
 
   // Safe emit typing
@@ -54,7 +56,8 @@ function MessageInput() {
     const value = e.target.value;
     setText(value);
 
-    if (isSoundEnabled) selectRandomSound();
+    if (isSoundEnabled && typeof selectRandomSound === "function")
+      selectRandomSound();
 
     emitTyping(true);
 
@@ -72,7 +75,8 @@ function MessageInput() {
       (typeof emojiObj === "string" ? emojiObj : "");
     setText((prev) => (prev || "") + char);
 
-    if (isSoundEnabled) selectRandomSound();
+    if (isSoundEnabled && typeof selectRandomSound === "function")
+      selectRandomSound();
 
     emitTyping(true);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -82,29 +86,54 @@ function MessageInput() {
     }, 1000);
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    if (!text.trim() && !imagePreview) return;
-    if (isSoundEnabled) selectRandomSound();
+    const cleanText = (text || "").trim();
 
+    // nothing to send
+    if (!cleanText && !imagePreview) return;
+
+    if (isSoundEnabled && typeof selectRandomSound === "function")
+      selectRandomSound();
+
+    // stop typing indicator
     emitTyping(false);
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
 
-    // send through store action
-    sendMessage({
-      text: text.trim(),
-      image: imagePreview,
-    });
+    try {
+      // prepare fields: plainText for UI, cipherText for server
+      let encryptedText = null;
+      if (cleanText) {
+        encryptedText = await encryptMessage(cleanText);
+        if (!encryptedText) {
+          console.error("MessageInput: encryptMessage returned null for text:", cleanText);
+          toast.error("Encryption failed — message not sent");
+          return;
+        }
+      }
 
-    // reset states
-    setText("");
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setShowEmojiPicker(false);
+      const payloadForStore = {
+        plainText: cleanText || "",
+        cipherText: encryptedText || null,
+        image: imagePreview || null,
+      };
+
+      // send to store; store will send to server and handle optimistic update
+      await sendMessage(payloadForStore);
+
+      // reset states on success
+      setText("");
+      setImagePreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setShowEmojiPicker(false);
+    } catch (err) {
+      console.error("send message error", err);
+      toast.error("Failed to send message");
+    }
   };
 
   // File change (image preview)
@@ -182,8 +211,6 @@ function MessageInput() {
       )}
 
       <div className="p-4 md:p-4 bg-slate-900/90 backdrop-blur-lg">
-        {/* Image Preview Area */}
-
         {/* Input Area */}
         <form
           onSubmit={handleSendMessage}
@@ -229,9 +256,7 @@ function MessageInput() {
                 setShowEmojiPicker((prev) => !prev);
               }}
               className={`p-2 md:p-3 rounded-full ${
-                showEmojiPicker
-                  ? "text-cyan-400 bg-slate-800"
-                  : "text-slate-400 "
+                showEmojiPicker ? "text-cyan-400 bg-slate-800" : "text-slate-400 "
               }  hover:text-cyan-400 hover:bg-slate-800 transition-all`}
               aria-label="emojis"
             >

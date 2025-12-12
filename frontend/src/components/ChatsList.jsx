@@ -42,11 +42,9 @@ function ChatsList() {
           const isSelected = toId(selectedUser?._id) === chatId;
           const isOnline = onlineUsers.map(toId).includes(chatId);
           const isMeSender = toId(chat.lastMessageSender) === meId;
-          // const otherUserName = (chat.fullName || "").trim().split(" ")[0] || "";
           const isTyping = !!typingStatuses?.[chatId];
 
           // Show typing if other user is typing, not the current user, and chat isn't currently selected.
-          // (Note: removed the previous constraint that blocked typing if lastMessageSender === meId)
           const showTyping = isTyping && chatId !== meId && !isSelected;
 
           // unseenCount: prefer chat.unseenCount (if present) else fall back to unseenCounts map
@@ -59,12 +57,15 @@ function ChatsList() {
           // lastUnseenMessageId might be stored keyed by chatId (string)
           const isLastUnseenForThisChat = !!(lastUnseenMessageId && lastUnseenMessageId[chatId]);
 
+          // Prefer explicit plain text fields (store sets plainText). Fallback to lastMessageText.
+          const previewValue = chat.plainText ?? chat.lastMessagePlain ?? chat.lastMessageText ?? "";
+
           return (
             <button
               key={chatId}
               onClick={() => {
-                if (!isSelected){
-                  setSelectedUser(chat)
+                if (!isSelected) {
+                  setSelectedUser(chat);
                   window.history.pushState({ chat: chat._id }, "", `#/chat/${chat._id}`);
                 }
               }}
@@ -127,13 +128,17 @@ function ChatsList() {
                     </span>
                   )}
 
-                  {!showTyping && chat.lastMessageText ? (
+                  {!showTyping && previewValue ? (
                     <>
                       {isMeSender && (
                         <span className={isSelected ? "text-cyan-400/80" : "text-slate-400"}>
-                          You: {chat.lastMessageText}
+                          You:{" "}
+                          <span className="truncate">
+                            {previewValue}
+                          </span>
                         </span>
                       )}
+
                       {!isMeSender && (
                         <span
                           className={`flex-1 truncate inline-flex items-center gap-2 ${
@@ -143,9 +148,7 @@ function ChatsList() {
                           {isLastUnseenForThisChat && (
                             <span aria-hidden className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0" />
                           )}
-                          <span className="truncate">
-                            {chat.lastMessageText}
-                          </span>
+                          <span className="truncate">{previewValue}</span>
                           {isLastUnseenForThisChat && (
                             <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
                               new
@@ -155,7 +158,14 @@ function ChatsList() {
                       )}
                     </>
                   ) : (
-                    !showTyping && <span className="text-slate-500 italic">No messages</span>
+                    !showTyping && (
+                      // If there's a cipher but no plainText, indicate encrypted message
+                      (chat.cipherText || chat.lastMessageText) ? (
+                        <span className="text-xs italic text-slate-400">Encrypted message</span>
+                      ) : (
+                        <span className="text-slate-500 italic">No messages</span>
+                      )
+                    )
                   )}
                 </p>
               </div>
