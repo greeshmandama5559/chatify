@@ -10,7 +10,7 @@ import { useChatStore } from "./store/useChatStore";
 import CallPage from "./pages/CallPage";
 import EmailVerification from "./pages/EmailVerification";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import GoogleSuccess from "./pages/GoogleSuccess";
+import CompleteProfile from "./pages/CompleteProfile";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }) => {
 const RedirectAuthenticatedUser = ({ children }) => {
   const { authUser, isAuthenticated } = useAuthStore();
   if (isAuthenticated && authUser?.isVerified) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={import.meta.env.VITE_CLIENT_ORIGIN} replace />;
   }
 
   return children;
@@ -86,9 +86,14 @@ function App() {
           }
         />
 
-        <Route path="/google-success" element={<GoogleSuccess />} />
-
         <Route path="/verify-email" element={<EmailVerification />} />
+
+        <Route
+          path="/complete-profile"
+          element={
+              <CompleteProfile />
+          }
+        />
 
         <Route
           path="/signup"

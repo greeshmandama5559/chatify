@@ -1,6 +1,8 @@
 import passport from "passport";
 import GoogleStrategy from "passport-google-oauth20";
 import User from "../models/User.js";
+import PendingUser from "../models/PendingUser.js";
+import crypto from "crypto";
 import ENV from "../ENV.js";
 
 passport.use(
@@ -13,33 +15,53 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         const { id, displayName, emails, photos } = profile;
-
         const email = emails?.[0]?.value;
-        if (!email) return done(new Error("No email from Google"), null);
+
+        if (!email) return done(new Error("No email from Google"));
 
         let user = await User.findOne({ googleId: id });
+        if (user) return done(null, user);
 
-        if (!user) {
-          user = await User.findOne({ Email: email });
-
-          if (user) {
-            user.googleId = id;
-            await user.save();
-          } else {
-            user = await User.create({
-              googleId: id,
-              fullName: displayName,
-              Email: emails[0].value,
-              profilePic: photos[0].value,
-              isVerified: true,
-            });
-          }
+        user = await User.findOne({ Email: email });
+        if (user) {
+          user.googleId = id;
+          await user.save();
+          return done(null, user);
         }
 
+        const fullNameExists = await User.findOne({ fullName: displayName });
+
+        if (fullNameExists) {
+          const token = crypto.randomBytes(32).toString("hex");
+
+          const pendingUser = await PendingUser.create({
+            googleId: id,
+            fullName: displayName,
+            Email: email,
+            profilePic: photos[0]?.value,
+            authProvider: "google",
+            verificationToken: token,
+          });
+
+          return done(null, {
+            pendingUserId: pendingUser._id,
+            isPending: true,
+            token,
+          });
+        }
+
+        user = await User.create({
+          googleId: id,
+          fullName: displayName,
+          Email: email,
+          profilePic: photos[0]?.value,
+          isVerified: true,
+        });
+
         return done(null, user);
-      } catch (error) {
-        console.error("GoogleStrategy error:", error);
-        return done(error, null);
+      } catch (err) {
+        console.error("GoogleStrategy error:", err);
+        return done(err);
       }
     }
   )

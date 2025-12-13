@@ -182,6 +182,20 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  completeProfile: async (state, userName) => {
+    set({ isLoading: true });
+    try {
+      const res = await axiosInstance.post("/auth/complete-profile", { state, fullName: userName });
+      set({ authUser: res.data, isAuthenticated: true, pendingSignup: null });
+      return {success: true};
+    } catch (error) {
+      console.error("error in set cahnge:", error);
+      set({ error: error?.response?.data?.message });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
@@ -210,7 +224,10 @@ export const useAuthStore = create((set, get) => ({
 
   updateProfileName: async (fullName) => {
     try {
-      const res = await axiosInstance.put("/auth/update-profile-name", fullName);
+      const res = await axiosInstance.put(
+        "/auth/update-profile-name",
+        fullName
+      );
       set({ authUser: res.data });
       toast.success("Name updated");
     } catch (error) {
