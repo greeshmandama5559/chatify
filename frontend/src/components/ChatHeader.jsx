@@ -78,20 +78,16 @@ function ChatHeader() {
       return toast.error("Chat channel is not ready yet. Please try again.");
     }
 
-    const isProd = import.meta.env.PROD; // true only when built for production
-    const BASE = isProd
-      ? "https://convox-lien.onrender.com"
-      : window.location.origin;
-    const callUrl = `${BASE}/call/${channel}`;
+    const callUrl = `${import.meta.env.VITE_CLIENT_ORIGIN}/call/${channel}`;
     console.log("Generated call URL:", callUrl);
 
     // Send plain text containing the url. LinkifyText in the message renderer
     // will convert the URL into a clickable link for both sender & receiver.
     sendMessage({
       type: "video_call",
-      text: `Video call initiated`,
+      textVideoCall: `🎥 Video call initiated`,
       url: callUrl,
-      image: "",
+      image: null,
     });
   };
 

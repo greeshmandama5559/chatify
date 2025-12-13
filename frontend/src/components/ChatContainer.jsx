@@ -43,6 +43,10 @@ function ChatContainer() {
   }, [authUser, connectSocket, socket]);
 
   useEffect(() => {
+    useChatStore.getState().migrateDecryptCache();
+  }, []);
+
+  useEffect(() => {
     const el = chatRef.current;
     if (!el) return;
 
@@ -74,15 +78,18 @@ function ChatContainer() {
 
   useEffect(() => {
     if (!chatRef.current) return;
+
     requestAnimationFrame(() => {
+      const el = chatRef.current;
       if (shouldForceScrollRef.current) {
-        endRef.current?.scrollIntoView({ behavior: "auto" });
+        el.scrollTop = el.scrollHeight;
         shouldForceScrollRef.current = false;
         isAutoScrollRef.current = true;
         return;
       }
+
       if (isAutoScrollRef.current) {
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
       }
     });
   }, [messages]);
@@ -194,14 +201,10 @@ function ChatContainer() {
 
               // prefer stored plainText (populated by store) if available
               const plainText =
-                msg.plainText ??
-                msg.plain_text ??
-                msg.textPlain ??
-                (!msg.cipherText && typeof msg.text === "string"
+                msg.type === "video_call"
                   ? msg.text
-                  : null);
+                  : msg.plainText ?? msg.plain_text ?? msg.textPlain ?? null;
 
-              // is this the last rendered message?
               const isLast = idx === messages.length - 1;
 
               return (
@@ -212,17 +215,19 @@ function ChatContainer() {
                   }`}
                 >
                   {/* Avatar Bubble */}
-                  <div className="flex-shrink-0">
+                  <div
+                    className="flex-shrink-0"
+                    style={
+                      isLast && partnerIsTyping
+                        ? { transform: "translateY(-20px)" }
+                        : undefined
+                    }
+                  >
                     <img
                       src={profilePic}
                       alt="profile"
                       onError={(e) => (e.currentTarget.src = "/avatar.png")}
                       className="w-7 h-7 rounded-full object-cover border border-slate-700 shadow-sm"
-                      style={
-                        isLast && partnerIsTyping
-                          ? { transform: "translateY(-20px)" }
-                          : undefined
-                      }
                     />
                   </div>
 
@@ -274,18 +279,10 @@ function ChatContainer() {
                         )}
 
                         {/* Text Content (prefer plainText only) */}
-                        {plainText ? (
+                        {plainText && (
                           <p className="text-sm leading-tight tracking-wide break-words">
                             {LinkifyText(plainText)}
                           </p>
-                        ) : msg.cipherText ? (
-                          <span className="text-sm leading-tight tracking-wide italic text-slate-400">
-                            Encrypted message
-                          </span>
-                        ) : (
-                          <span className="text-sm leading-tight tracking-wide italic text-slate-400">
-                            No message
-                          </span>
                         )}
                       </>
                     )}
@@ -331,7 +328,7 @@ function ChatContainer() {
                 src={selectedUser.profilePic || "/avatar.png"}
                 alt={`${selectedUser.fullName} avatar`}
                 onError={(e) => (e.currentTarget.src = "/avatar.png")}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-full"
               />
             </div>
 

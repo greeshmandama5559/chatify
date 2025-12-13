@@ -35,6 +35,8 @@
       setEditingName(authUser?.fullName || "");
     }, [authUser?.fullName]);
 
+    const profilePic = authUser.profilePic;
+
     useEffect(() => {
       if (isEditing && nameInputRef.current) {
         nameInputRef.current.focus();
@@ -114,8 +116,9 @@
                 onClick={() => fileInputRef.current.click()}
                 aria-label="Change profile picture"
               >
+
                 <img
-                  src={authUser?.profilePic || selectedImg || "/avatar.png"}
+                  src={profilePic || selectedImg || "/avatar.png"}
                   alt="User image"
                   className="w-full h-full object-cover"
                 />

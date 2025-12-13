@@ -100,11 +100,23 @@ export const useChatStore = create((set, get) => ({
             // server may use lastMessageText or text; normalize to cipherText
             const cipher = chat.lastMessageText ?? chat.text ?? null;
             chat.cipherText = cipher ?? null;
+            chat.type =
+              chat.lastMessageText === "🎥 Video call initiated" &&
+              chat.cipherText === "🎥 Video call initiated"
+                ? "video_call"
+                : "";
+            let pt = "";
             if (cipher) {
-              const pt = await decrypt(cipher).catch((e) => {
-                console.warn("[chat store] decrypt chat preview failed", e);
-                return "";
-              });
+              console.log("type:", chat.type, chat);
+              if (chat.type !== "video_call") {
+                pt = await decrypt(cipher).catch((e) => {
+                  console.warn("[chat store] decrypt chat preview failed", e);
+                  return "";
+                });
+              } else {
+                pt = chat.text ?? chat.plainText;
+              }
+
               chat.plainText = pt || (chat.plainText ?? "");
             } else {
               chat.plainText = chat.plainText ?? "";
@@ -155,8 +167,12 @@ export const useChatStore = create((set, get) => ({
           const msg = { ...m };
           msg.cipherText = msg.text ?? null; // server uses `text` for ciphertext
           try {
-            msg.plainText =
-              (await decrypt(msg.cipherText)) || msg.plainText || "";
+            if (msg.type !== "video_call") {
+              msg.plainText =
+                (await decrypt(msg.cipherText)) || msg.plainText || "";
+            } else {
+              msg.plainText = msg.text ?? msg.cipherText;
+            }
           } catch (e) {
             console.log("error in get message:", e);
             msg.plainText = msg.plainText || "";
@@ -219,7 +235,11 @@ export const useChatStore = create((set, get) => ({
     }
 
     // Ensure we don't accidentally pass a Promise or undefined for plainText
-    const cleanText = messageData.plainText || messageData.text || "";
+    const cleanText =
+      messageData.textVideoCall ||
+      messageData.plainText ||
+      messageData.text ||
+      "";
 
     // Build optimistic message (UI-facing)
     const optimisticMessage = {
@@ -303,12 +323,25 @@ export const useChatStore = create((set, get) => ({
 
     // ----- send to server -----
     try {
+      let payload = {};
       // server expects `text` to be ciphertext (this keeps API unchanged)
-      const payload = {
-        text: messageData.cipherText || messageData.text || null,
-        image: messageData.image || null,
-        // include any other fields if needed
-      };
+      if (messageData.type === "video_call") {
+        payload = {
+          type: "video_call",
+          text: messageData.textVideoCall,
+          image: messageData.image || null,
+          url: messageData.url,
+        };
+      } else {
+        payload = {
+          text:
+            messageData.textVideoCall ||
+            messageData.cipherText ||
+            messageData.text ||
+            null,
+          image: messageData.image || null,
+        };
+      }
 
       const res = await axiosInstance.post(
         `/messages/send/${selectedId}`,
@@ -324,11 +357,14 @@ export const useChatStore = create((set, get) => ({
       // attempt to decrypt server cipher to plainText (defensive)
       try {
         const decrypt = useCryptoStore.getState().decryptMessage;
-        serverMsg.plainText =
-          (await decrypt(serverMsg.cipherText)) || serverMsg.plainText || "";
+        if (serverMsg.type !== "video_call") {
+          serverMsg.plainText = await decrypt(serverMsg.text);
+        } else {
+          serverMsg.plainText = serverMsg.text;
+        }
       } catch (e) {
         console.log("error in send message:", e);
-        serverMsg.plainText = serverMsg.plainText || "";
+        serverMsg.plainText = serverMsg.text || "";
       }
 
       // normalize ids to strings
@@ -421,6 +457,7 @@ export const useChatStore = create((set, get) => ({
                 plainText: serverMsg.plainText ?? chat.plainText ?? "",
                 cipherText: serverMsg.cipherText ?? chat.cipherText ?? null,
                 unseenCount: 0,
+                type: serverMsg.type || null,
               }
             : chat
         );
@@ -554,13 +591,17 @@ export const useChatStore = create((set, get) => ({
           // attempt to decrypt to plainText (defensive)
           try {
             const decrypt = useCryptoStore.getState().decryptMessage;
-            newMessage.plainText =
-              (await decrypt(newMessage.cipherText)) ||
-              newMessage.plainText ||
-              "";
+            if (newMessage.type !== "video_call") {
+              newMessage.plainText =
+                (await decrypt(newMessage.cipherText)) ||
+                newMessage.plainText ||
+                "";
+            } else {
+              newMessage.plainText = newMessage.text ?? newMessage.cipherText;
+            }
           } catch (e) {
             console.log("error in subscribe to message:", e);
-            newMessage.plainText = newMessage.plainText || "";
+            newMessage.plainText = newMessage.text || "";
           }
 
           // ignore duplicates
@@ -678,6 +719,7 @@ export const useChatStore = create((set, get) => ({
                 lastMessageTime: newMessage.createdAt,
                 plainText: newMessage.plainText ?? chat.plainText ?? "",
                 cipherText: newMessage.cipherText ?? chat.cipherText ?? null,
+                type: newMessage.type || null,
                 unseenCount:
                   (get().unseenCounts && get().unseenCounts[partnerId]) ??
                   (chat.unseenCount || 0),
@@ -697,11 +739,14 @@ export const useChatStore = create((set, get) => ({
               fullName: newMessage.senderName || "Loading...",
               profilePic: newMessage.senderProfilePic || "/avatar.png",
               lastMessageText:
-                newMessage.plainText || (newMessage.image ? "📷 Image" : ""),
+                newMessage.text ||
+                newMessage.plainText ||
+                (newMessage.image ? "📷 Image" : ""),
               lastMessageSender: senderId,
               lastMessageTime: newMessage.createdAt,
               plainText: newMessage.plainText || "",
               cipherText: newMessage.cipherText || null,
+              type: newMessage.type,
               unseenCount:
                 (get().unseenCounts && get().unseenCounts[partnerId]) || 1,
             };
@@ -922,9 +967,14 @@ export const useChatStore = create((set, get) => ({
         const promises = batch.map(async ({ userId, index, msg }) => {
           try {
             const cipher = msg.cipherText ?? msg.text ?? null;
+            let pt = "";
             if (!cipher) return null;
             // decryptMessage returns string or null (defensive)
-            const pt = await decrypt(cipher);
+            if (msg.type !== "video_call") {
+              pt = await decrypt(cipher);
+            } else {
+              pt = msg.text ?? msg.cipherText;
+            }
             if (pt) {
               // write normalized field(s) back into parsed
               // ensure both plainText and plain_text variants for compatibility

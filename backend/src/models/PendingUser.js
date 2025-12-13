@@ -1,14 +1,40 @@
 import mongoose from "mongoose";
 
 const PendingUserSchema = new mongoose.Schema({
+  googleId: String,
+
   fullName: { type: String, required: true, trim: true },
-  Email: { type: String, required: true, lowercase: true, trim: true, index: true },
-  Password: { type: String, required: true }, // hashed password
+
+  Email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    trim: true,
+    index: true,
+  },
+
+  Password: {
+    type: String,
+    minlength: 6,
+  },
+
+  profilePic: String,
+
+  authProvider: {
+    type: String,
+    enum: ["google", "local"],
+    required: true,
+  },
+
   verificationToken: { type: String, required: true },
-  verificationTokenExpiresAt: { type: Date, required: true },
+  verificationTokenExpiresAt: { type: Date},
+
   createdAt: { type: Date, default: Date.now },
 });
 
-PendingUserSchema.index({ verificationTokenExpiresAt: 1 }, { expireAfterSeconds: 0 }); 
+PendingUserSchema.index(
+  { verificationTokenExpiresAt: 1 },
+  { expireAfterSeconds: 0 }
+);
 
 export default mongoose.model("PendingUser", PendingUserSchema);

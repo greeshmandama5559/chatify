@@ -122,12 +122,13 @@ function MessageInput() {
         image: imagePreview || null,
       };
 
-      // send to store; store will send to server and handle optimistic update
+      setImagePreview(null);
+
+       setText("");
+
       await sendMessage(payloadForStore);
 
-      // reset states on success
-      setText("");
-      setImagePreview(null);
+     
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowEmojiPicker(false);
     } catch (err) {
@@ -210,7 +211,7 @@ function MessageInput() {
         </div>
       )}
 
-      <div className="p-4 md:p-4 bg-slate-900/90 backdrop-blur-lg">
+      <div className="p-4 md:p-4 bg-slate-900/90 backdrop-blur-lg" style={{ minHeight: 64 }}>
         {/* Input Area */}
         <form
           onSubmit={handleSendMessage}
@@ -243,7 +244,7 @@ function MessageInput() {
             type="text"
             value={text}
             onChange={handleInputChange}
-            className="flex-1 min-w-0 bg-slate-800 text-slate-100 rounded-full py-3 px-5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 placeholder-slate-500 transition-all"
+            className="flex-1 min-w-0 bg-slate-800 text-slate-100 rounded-full h-12 px-5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 placeholder-slate-500 transition-all"
             placeholder="Type a message..."
             aria-label="Type a message"
           />

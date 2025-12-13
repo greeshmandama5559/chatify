@@ -62,6 +62,7 @@ export const signup = async (req, res) => {
       fullName: updatedFullName,
       Email,
       Password: hashed,
+      authProvider: "local",  
       verificationToken,
       verificationTokenExpiresAt,
     });
@@ -75,8 +76,10 @@ export const signup = async (req, res) => {
         subject: "Verify Your Email",
         ver: verificationToken,
       });
-      if(!mailRes.ok){
-        return res.status(400).json({message: "failed to send verification code."});
+      if (!mailRes.ok) {
+        return res
+          .status(400)
+          .json({ message: "failed to send verification code." });
       }
     } catch (err) {
       console.error("Failed to send verification email:", err);
@@ -339,23 +342,63 @@ export const googleSuccess = async (req, res) => {
   try {
     let user = req.user;
 
-    if (!user.googleId) {
-      const found = await User.findById(user._id);
-      if (found && !found.googleId) {
-        found.googleId = user.googleId || req.user.googleId;
-        await found.save();
-        user = found;
-      }
+    if (user?.isPending) {
+      return res.redirect(
+        `${ENV.CLIENT_URL}/complete-profile?state=${user.token}`
+      );
     }
 
-    const token = generateToken(user._id, res);
+    generateToken(user._id, res);
 
-    console.log("googleSuccess token:", token, "user: ",user._id);
-
-    res.redirect(`${ENV.CLIENT_URL}/google-success?token=${token}`);
+    return res.redirect(ENV.CLIENT_URL);
   } catch (error) {
     console.log("error in googlesuccess: ", error);
     return res.status(500).send("Authentication error");
+  }
+};
+
+export const completeProfile = async (req, res) => {
+  try {
+    const { state, fullName } = req.body;
+
+    const pending = await PendingUser.findOne({
+      verificationToken: state,
+    });
+
+    if (!pending) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    const nameExists = await User.findOne({ fullName });
+    if (nameExists) {
+      return res.status(409).json({ message: "name already taken" });
+    }
+
+    const user = await User.create({
+      googleId: pending.googleId,
+      fullName,
+      Email: pending.Email,
+      profilePic: pending.profilePic,
+      isVerified: true,
+    });
+
+    await PendingUser.deleteOne({ _id: pending._id });
+
+    generateToken(user._id, res);
+
+    return res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      Email: user.Email,
+      profilePic: user.profilePic,
+      isVerified: user.isVerified,
+    });
+  } catch (error) {
+    console.log("error in complete profile (backend):", error);
+    res.status(400).json({
+      success: false,
+      message: "internal server error",
+    });
   }
 };
 
@@ -393,8 +436,7 @@ export const updateProfile = async (req, res) => {
 export const updateProfileName = async (req, res) => {
   try {
     const { fullName } = req.body;
-    if (!fullName)
-      return res.status(400).json({ message: "name is required" });
+    if (!fullName) return res.status(400).json({ message: "name is required" });
 
     const userId = req.user._id;
 

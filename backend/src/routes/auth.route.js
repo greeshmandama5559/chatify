@@ -12,12 +12,26 @@ import {
   resendOtp,
   googleSuccess,
   updateProfileName,
+  completeProfile,
 } from "../controller/auth.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 import passport from "passport";
 
 const route = express.Router();
+
+route.post("/complete-profile", completeProfile);
+
+route.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+route.get(
+  "/google/callback",
+  passport.authenticate("google", { session: false, failureRedirect: "/signup" }),
+  googleSuccess
+);
 
 route.use(arcjetProtection);
 
@@ -38,17 +52,6 @@ route.post("/login", login);
 route.post("/forgot-password", forgotPassword);
 
 route.post("/reset-password/:token", resetPassword);
-
-route.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-route.get(
-  "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
-  googleSuccess
-);
 
 route.post("/logout", logout);
 

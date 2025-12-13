@@ -4,37 +4,47 @@ const userSchema = new mongoose.Schema(
   {
     Email: {
       type: String,
-      require: true,
+      required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
+
     fullName: {
       type: String,
-      require: true,
+      unique: true,
+      trim: true,
     },
+
     Password: {
       type: String,
-      require: true,
-      minLenght: 6,
+      minlength: 6,
+      select: false,
     },
+
     profilePic: {
       type: String,
       default: "",
     },
+
     googleId: {
-      type:String,
+      type: String,
+      unique: true,
+      sparse: true,
     },
+
     isVerified: {
       type: Boolean,
       default: false,
     },
+
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
+
     verificationToken: String,
     verificationTokenExpiresAt: Date,
   },
   { timestamps: true }
-); // addedAt and updatedAt
+);
 
-const User = mongoose.model("User", userSchema);
-
-export default User;
+export default mongoose.model("User", userSchema);
