@@ -49,7 +49,9 @@ export const sendMessage = async (req, res) => {
     const senderId = req.user._id;
 
     if (!text && !image && !url) {
-      return res.status(400).json({ message: "text, image or url is required" });
+      return res
+        .status(400)
+        .json({ message: "text, image or url is required" });
     }
 
     const receiverExists = await User.exists({ _id: receiverId });
@@ -111,7 +113,9 @@ export const sendMessage = async (req, res) => {
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       if (Array.isArray(receiverSocketId)) {
-        receiverSocketId.forEach((sid) => io.to(sid).emit("newMessage", payload));
+        receiverSocketId.forEach((sid) =>
+          io.to(sid).emit("newMessage", payload)
+        );
       } else {
         io.to(receiverSocketId).emit("newMessage", payload);
       }
@@ -192,35 +196,40 @@ export const deleteMessage = async (req, res) => {
     const { id: messageId } = req.params;
     const userId = req.user._id;
 
-    // Find message
     const msg = await Message.findById(messageId);
     if (!msg) return res.status(404).json({ message: "Message not found" });
 
-    // Only sender can delete the message
     if (msg.senderId.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    // Delete
     await msg.deleteOne();
 
-    // Emit delete event to receiver
-    const receiverSocketId = getReceiverSocketId(msg.receiverId);
-    const senderSocketId = getReceiverSocketId(msg.senderId);
+    const senderSocketId = getReceiverSocketId(msg.senderId.toString());
+    const receiverSocketId = getReceiverSocketId(msg.receiverId.toString());
 
-    const payload = { messageId };
-
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("deleteMessage", payload);
-    }
+    // 🔑 sender sees receiver as partner
     if (senderSocketId) {
-      io.to(senderSocketId).emit("deleteMessage", payload);
+      io.to(senderSocketId).emit("deleteMessage", {
+        messageId,
+        partnerId: msg.receiverId,
+      });
+    }
+
+    // 🔑 receiver sees sender as partner
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("deleteMessage", {
+        messageId,
+        partnerId: msg.senderId,
+      });
     }
 
     return res.status(200).json({ success: true, messageId });
   } catch (error) {
     console.error("Error deleting message:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
 

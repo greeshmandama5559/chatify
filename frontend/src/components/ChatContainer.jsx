@@ -34,7 +34,31 @@ function ChatContainer() {
   const [modalIsOptimistic, setModalIsOptimistic] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  const [showDeleteFor, setShowDeleteFor] = useState(false);
+
   const isDeclined = messages.isDeclined;
+
+  const timerRef = useRef(null);
+
+  const handleMouseDown = (msgId) => {
+    timerRef.current = setTimeout(() => {
+      setShowDeleteFor(msgId); // only show for this message
+    }, 600); // 600ms long press threshold
+  };
+
+  const handleMouseUp = () => {
+    clearTimeout(timerRef.current);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      // If click is anywhere, hide delete button
+      setShowDeleteFor(null);
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (authUser && (!socket || !socket.connected)) {
@@ -79,20 +103,16 @@ function ChatContainer() {
   useEffect(() => {
     if (!chatRef.current) return;
 
-    requestAnimationFrame(() => {
-      const el = chatRef.current;
-      if (shouldForceScrollRef.current) {
-        el.scrollTop = el.scrollHeight;
-        shouldForceScrollRef.current = false;
-        isAutoScrollRef.current = true;
-        return;
-      }
+    if (shouldForceScrollRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      shouldForceScrollRef.current = false;
+      return;
+    }
 
-      if (isAutoScrollRef.current) {
-        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-      }
-    });
-  }, [messages]);
+    if (isAutoScrollRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages.length]);
 
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString([], {
@@ -176,10 +196,7 @@ function ChatContainer() {
     : false;
 
   return (
-    <div
-      className="flex flex-col min-h-0 bg-slate-950 rounded-r-2xl"
-      style={{ minHeight: "calc(var(--vh,1vh)*100)" }}
-    >
+    <div className="flex flex-col h-full min-h-0 bg-slate-950 rounded-r-2xl">
       <ChatHeader />
 
       <div
@@ -233,6 +250,26 @@ function ChatContainer() {
 
                   {/* Message Bubble */}
                   <div
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      handleMouseDown(msg._id);
+                    }}
+                    onMouseUp={(e) => {
+                      e.stopPropagation();
+                      handleMouseUp();
+                    }}
+                    onMouseLeave={(e) => {
+                      e.stopPropagation();
+                      handleMouseUp();
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
+                      handleMouseDown(msg._id);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation();
+                      handleMouseUp();
+                    }}
                     style={
                       isLast && partnerIsTyping
                         ? { transform: "translateY(-16px)" }
@@ -297,13 +334,26 @@ function ChatContainer() {
                     >
                       {formatTime(msg.createdAt)}
                     </div>
+
+                    {isMine && showDeleteFor === msg._id && (
+                      <button
+                        className="absolute -left-6 bottom-3 text-red-500 cursor-pointer"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await deleteMessage(msg._id, selectedUser?._id);
+                          setShowDeleteFor(null);
+                        }}
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
                     <button
                       className={`opacity-0 absolute ${
                         isMine &&
                         "cursor-pointer text-red-500 group-hover:opacity-90 -left-6 bottom-3"
                       }`}
-                      onClick={() => {
-                        deleteMessage(msg._id);
+                      onClick={async () => {
+                        await deleteMessage(msg._id, selectedUser?._id);
                       }}
                     >
                       <Trash2 size={20} />
