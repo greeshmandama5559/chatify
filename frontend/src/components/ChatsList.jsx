@@ -16,7 +16,6 @@ function ChatsList() {
     typingStatuses = {},
   } = useChatStore();
 
-  // onlineUsers might be undefined until auth store initializes — default to []
   const { onlineUsers = [], authUser = {} } = useAuthStore();
 
   useEffect(() => {
@@ -61,7 +60,7 @@ function ChatsList() {
         const previewValue =
           chat.type === "video_call"
             ? chat.lastMessageText
-            : chat.plainText ?? chat.lastMessagePlain ?? "";
+            : chat.plainText || chat.lastMessageText || "No messages yet";
 
         console.log("preview:", previewValue, "type:", chat.type);
 
@@ -190,7 +189,9 @@ function ChatsList() {
                       🎥 video call initiated
                     </span>
                   ) : (
-                    <span className="text-slate-500 italic">🎥 video call initiated</span>
+                    <span className="text-slate-500 italic">
+                      🎥 video call initiated
+                    </span>
                   ))
                 )}
               </p>

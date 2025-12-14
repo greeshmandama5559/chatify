@@ -104,11 +104,13 @@ export const useChatStore = create((set, get) => ({
               chat.lastMessageText === "🎥 Video call initiated" &&
               chat.cipherText === "🎥 Video call initiated"
                 ? "video_call"
+                : chat.lastMessageText === "📷 Image"
+                ? "image"
                 : "";
             let pt = "";
             if (cipher) {
               console.log("type:", chat.type, chat);
-              if (chat.type !== "video_call") {
+              if (chat.type !== "video_call" && chat.type !== "image") {
                 pt = await decrypt(cipher).catch((e) => {
                   console.warn("[chat store] decrypt chat preview failed", e);
                   return "";
@@ -136,6 +138,8 @@ export const useChatStore = create((set, get) => ({
           }
         })
       );
+
+      console.log("normalized: ", normalized);
 
       set({ chats: normalized });
     } catch (error) {
@@ -559,6 +563,37 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  decrementUnseenFor: (partnerId, messageId) => {
+    const unseenCounts = { ...get().unseenCounts };
+    const lastUnseenMessageId = { ...get().lastUnseenMessageId };
+
+    // 1️⃣ decrement unseen count (never below 0)
+    if (unseenCounts[partnerId] > 0) {
+      unseenCounts[partnerId] -= 1;
+      if (unseenCounts[partnerId] === 0) {
+        delete unseenCounts[partnerId];
+      }
+    }
+
+    // 2️⃣ clear last unseen marker if this message was it
+    if (lastUnseenMessageId[partnerId] === messageId) {
+      delete lastUnseenMessageId[partnerId];
+    }
+
+    // 3️⃣ update chats array
+    const updatedChats = get().chats.map((c) =>
+      c._id === partnerId
+        ? { ...c, unseenCount: Math.max(0, (c.unseenCount || 0) - 1) }
+        : c
+    );
+
+    set({
+      unseenCounts,
+      lastUnseenMessageId,
+      chats: updatedChats,
+    });
+  },
+
   // --------------------- SOCKET MESSAGE LISTENER ---------------------
   subscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
@@ -832,10 +867,87 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", onNewMessage);
     socket.on("typing", onTyping);
 
-    socket.on("deleteMessage", ({ messageId }) => {
-      set((state) => ({
-        messages: state.messages.filter((m) => m._id !== messageId),
-      }));
+    const onDeleteMessage = ({ messageId, partnerId }) => {
+      const chatId = normalizeId(partnerId);
+
+      // 🔑 1️⃣ Capture deleted message BEFORE mutation
+      const stateBefore = get();
+      const deletedMsg =
+        stateBefore.messagesCache?.[chatId]?.find(
+          (m) => String(m._id) === String(messageId)
+        ) ?? null;
+
+      set((state) => {
+        /* 2️⃣ Remove from open messages */
+        const updatedMessages = state.messages.filter(
+          (m) => String(m._id) !== String(messageId)
+        );
+
+        /* 3️⃣ Remove from cache */
+        const prevCache = state.messagesCache?.[chatId] || [];
+        const updatedCache = prevCache.filter(
+          (m) => String(m._id) !== String(messageId)
+        );
+
+        /* 4️⃣ Decide last message source */
+        const openMessages =
+          normalizeId(state.selectedUser?._id) === chatId
+            ? updatedMessages
+            : [];
+
+        const lastMsg = openMessages.at(-1) || updatedCache.at(-1) || null;
+
+        /* 5️⃣ Update chats list SAFELY */
+        const updatedChats = (state.chats || []).map((chat) => {
+          if (normalizeId(chat._id) !== chatId) return chat;
+
+          return {
+            ...chat,
+            lastMessageText: lastMsg
+              ? lastMsg.plainText || (lastMsg.image ? "📷 Image" : "")
+              : chat.lastMessageText || "No messages yet",
+            lastMessageSender:
+              lastMsg?.senderId ?? chat.lastMessageSender ?? null,
+            lastMessageTime: lastMsg?.createdAt ?? chat.lastMessageTime ?? null,
+            plainText: lastMsg?.plainText ?? chat.plainText ?? "",
+            cipherText: lastMsg?.cipherText ?? chat.cipherText ?? null,
+            type: lastMsg?.type ?? chat.type ?? null,
+          };
+        });
+
+        return {
+          messages: updatedMessages,
+          messagesCache: {
+            ...state.messagesCache,
+            [chatId]: updatedCache,
+          },
+          chats: updatedChats,
+        };
+      });
+
+      /* 6️⃣ unseen logic AFTER state update */
+      const { authUser } = useAuthStore.getState();
+      const authId = normalizeId(authUser?._id);
+
+      const wasUnseen =
+        deletedMsg &&
+        normalizeId(deletedMsg.receiverId) === authId &&
+        normalizeId(deletedMsg.senderId) !== authId;
+
+      if (wasUnseen) {
+        get().decrementUnseenFor(chatId, messageId);
+      }
+    };
+
+    // socket.off("deleteMessage", onDeleteMessage);
+    socket.off("deleteMessage", onDeleteMessage);
+
+    socket.on("deleteMessage", ({ messageId, partnerId }) => {
+      onDeleteMessage({ messageId, partnerId });
+    });
+
+    socket.on("deleteMessage", (data) => {
+      console.log("DELETE EVENT", data);
     });
 
     console.log("[chat store] subscribed to socket events");
@@ -1050,13 +1162,42 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  deleteMessage: async (messageId) => {
+  deleteMessage: async (messageId, partnerId) => {
     try {
       await axiosInstance.delete(`/messages/delete/${messageId}`);
 
-      set((state) => ({
-        messages: state.messages.filter((m) => m._id !== messageId),
-      }));
+      set((state) => {
+        const updatedMessages = state.messages.filter(
+          (m) => m._id !== messageId
+        );
+
+        const lastMsg = updatedMessages
+          .filter(
+            (m) =>
+              String(m.senderId) === String(partnerId) ||
+              String(m.receiverId) === String(partnerId)
+          )
+          .slice(-1)[0];
+
+        return {
+          messages: updatedMessages,
+          chats: state.chats.map((chat) =>
+            String(chat._id) === String(partnerId)
+              ? {
+                  ...chat,
+                  lastMessageText: lastMsg
+                    ? lastMsg.plainText || (lastMsg.image ? "📷 Image" : "")
+                    : "No messages yet",
+                  lastMessageSender: lastMsg?.senderId || null,
+                  lastMessageTime: lastMsg?.createdAt || null,
+                  plainText: lastMsg?.plainText ?? "",
+                  cipherText: lastMsg?.cipherText ?? null,
+                  type: lastMsg?.type || null,
+                }
+              : chat
+          ),
+        };
+      });
     } catch (err) {
       console.log(
         "Delete message failed:",
