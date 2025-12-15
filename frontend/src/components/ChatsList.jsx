@@ -14,13 +14,18 @@ function ChatsList() {
     unseenCounts = {},
     lastUnseenMessageId = {},
     typingStatuses = {},
+    hydrateFromServer,
   } = useChatStore();
 
   const { onlineUsers = [], authUser = {} } = useAuthStore();
 
   useEffect(() => {
-    getMyChatPartners();
-  }, [getMyChatPartners]);
+    const hydrate = async () => {
+      await getMyChatPartners();
+      await hydrateFromServer();
+    };
+    hydrate();
+  }, [getMyChatPartners, hydrateFromServer]); 
 
   if (isUsersLoading) return <UsersLoadingSkeleton />;
   if (!Array.isArray(chats) || chats.length === 0) return <NoChatsFound />;
@@ -30,6 +35,8 @@ function ChatsList() {
 
   const meId = toId(authUser._id);
 
+  const onlineSet = new Set(onlineUsers.map(toId));
+
   return (
     <div className="px-3 pb-4 space-y-1">
       {chats.filter(Boolean).map((chat) => {
@@ -37,12 +44,12 @@ function ChatsList() {
 
         const chatId = toId(chat._id);
         const isSelected = toId(selectedUser?._id) === chatId;
-        const isOnline = onlineUsers.map(toId).includes(chatId);
+        const isOnline = onlineSet.has(chatId);
         const isMeSender = toId(chat.lastMessageSender) === meId;
         const isTyping = !!typingStatuses?.[chatId];
 
         // Show typing if other user is typing, not the current user, and chat isn't currently selected.
-        const showTyping = isTyping && chatId !== meId && !isSelected;
+        const showTyping = isTyping && !isSelected;
 
         // unseenCount: prefer chat.unseenCount (if present) else fall back to unseenCounts map
         const unseenCountRaw =
@@ -51,18 +58,17 @@ function ChatsList() {
             : Number(unseenCounts?.[chatId]) || 0;
         const hasUnseen = unseenCountRaw > 0;
 
-        // lastUnseenMessageId might be stored keyed by chatId (string)
-        const isLastUnseenForThisChat = !!(
-          lastUnseenMessageId && lastUnseenMessageId[chatId]
-        );
+        const isLastUnseenForThisChat =
+          lastUnseenMessageId?.[chatId] &&
+          lastUnseenMessageId[chatId] === chat.lastMessageId;
+
+        console.log("last message:", isLastUnseenForThisChat);
 
         // Prefer explicit plain text fields (store sets plainText). Fallback to lastMessageText.
         const previewValue =
           chat.type === "video_call"
             ? chat.lastMessageText
             : chat.plainText || chat.lastMessageText || "No messages yet";
-
-        console.log("preview:", previewValue, "type:", chat.type);
 
         return (
           <button
@@ -145,55 +151,47 @@ function ChatsList() {
                 )}
 
                 {!showTyping && previewValue ? (
-                  <>
-                    {isMeSender && (
-                      <span
-                        className={
-                          isSelected ? "text-cyan-400/80" : "text-slate-400"
-                        }
-                      >
-                        You: <span className="truncate">{previewValue}</span>
-                      </span>
-                    )}
+  <>
+    {isMeSender && (
+      <span className={isSelected ? "text-cyan-400/80" : "text-slate-400"}>
+        You: <span className="truncate">{previewValue}</span>
+      </span>
+    )}
 
-                    {!isMeSender && (
-                      <span
-                        className={`flex-1 truncate inline-flex items-center gap-2 ${
-                          isSelected
-                            ? "text-cyan-400/80"
-                            : hasUnseen
-                            ? "text-green-200 font-semibold"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {isLastUnseenForThisChat && (
-                          <span
-                            aria-hidden
-                            className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0"
-                          />
-                        )}
-                        <span className="truncate">{previewValue}</span>
-                        {isLastUnseenForThisChat && (
-                          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
-                            new
-                          </span>
-                        )}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  !showTyping &&
-                  // If there's a cipher but no plainText, indicate encrypted message
-                  (chat.type === "video_call" ? (
-                    <span className="text-xs italic text-slate-400">
-                      🎥 video call initiated
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 italic">
-                      🎥 video call initiated
-                    </span>
-                  ))
-                )}
+    {!isMeSender && (
+      <span
+        className={`flex-1 truncate inline-flex items-center gap-2 ${
+          isSelected
+            ? "text-cyan-400/80"
+            : hasUnseen
+            ? "text-green-200 font-semibold"
+            : "text-slate-400"
+        }`}
+      >
+        {/* Use hasUnseen instead of lastUnseenMessageId */}
+        {hasUnseen && (
+          <span
+            aria-hidden
+            className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0"
+          />
+        )}
+        <span className="truncate">{previewValue}</span>
+        {hasUnseen && (
+          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
+            new
+          </span>
+        )}
+      </span>
+    )}
+  </>
+) : (
+  !showTyping && (
+    <span className="text-slate-500 italic">
+      🎥 video call initiated
+    </span>
+  )
+)}
+                 
               </p>
             </div>
           </button>

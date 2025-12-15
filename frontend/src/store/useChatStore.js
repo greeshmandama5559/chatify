@@ -99,6 +99,7 @@ export const useChatStore = create((set, get) => ({
             const chat = { ...c };
             // server may use lastMessageText or text; normalize to cipherText
             const cipher = chat.lastMessageText ?? chat.text ?? null;
+            chat.lastMessageId = chat.lastMessage?._id;
             chat.cipherText = cipher ?? null;
             chat.type =
               chat.lastMessageText === "🎥 Video call initiated" &&
@@ -147,6 +148,29 @@ export const useChatStore = create((set, get) => ({
     } finally {
       set({ isUsersLoading: false });
     }
+  },
+
+  hydrateUnseenCounts: (serverCounts) => {
+    const counts = {};
+    serverCounts.forEach((u) => {
+      counts[String(u._id)] = u.count;
+    });
+    set({
+      unseenCounts: counts,
+      chats: get().chats.map((c) => ({
+        ...c,
+        unseenCount: counts[c._id] || 0,
+      })),
+    });
+  },
+
+  hydrateFromServer: async () => {
+    await get().getMyChatPartners();
+
+    const res = await axiosInstance.get("/messages/unseen-counts");
+    const data = res.data;
+
+    get().hydrateUnseenCounts(data);
   },
 
   // --------------------- LOAD MESSAGES ---------------------
@@ -284,6 +308,7 @@ export const useChatStore = create((set, get) => ({
               lastMessageText:
                 cleanText || (messageData.image ? "📷 Image" : ""),
               lastMessageSender: authId,
+              lastMessageId: chat.lastMessage?._id,
               lastMessageTime: new Date().toISOString(),
               // also keep plainText & cipherText on chat for UI
               plainText: cleanText || chat.plainText || "",
@@ -485,6 +510,7 @@ export const useChatStore = create((set, get) => ({
             lastMessageText:
               serverMsg.plainText || (serverMsg.image ? "📷 Image" : ""),
             lastMessageSender: serverMsg.senderId ?? authId,
+            lastMessageId: serverMsg?.lastMessageId,
             lastMessageTime: serverMsg.createdAt ?? new Date().toISOString(),
             plainText: serverMsg.plainText ?? "",
             cipherText: serverMsg.cipherText ?? null,
@@ -552,7 +578,7 @@ export const useChatStore = create((set, get) => ({
       lastUnseenMessageId: newLast,
       chats: updatedChats,
     });
-    // Optionally: tell server we've seen messages (to update remote read receipts)
+
     try {
       const socket = useAuthStore.getState().socket;
       if (socket && socket.connected) {
@@ -660,9 +686,11 @@ export const useChatStore = create((set, get) => ({
             return;
           }
 
-          const existsInCache = (
-            get().messagesCache[newMessage.senderId] || []
-          ).some((m) => String(m._id) === String(newMessage._id));
+          const existsInCache = (get().messagesCache[partnerId] || []).some(
+            (m) => String(m._id) === String(newMessage._id)
+          );
+
+          if (existsInCache) return;
 
           if (existsInCache) return;
 
@@ -674,27 +702,21 @@ export const useChatStore = create((set, get) => ({
           const prevCache = messagesCache[partnerId] || [];
 
           // Append message to selected chat if currently open
-          const isFromSelectedUser = senderId === selectedUserId;
-          if (isFromSelectedUser) {
+          const isIncoming = senderId !== authId;
+          const isChatOpen = selectedUserId === partnerId;
+
+          if (isIncoming && !isChatOpen) {
+            get().incrementUnseenFor(partnerId, newMessage);
+          }
+
+          if (isIncoming && isChatOpen) {
             set({ messages: [...get().messages, newMessage] });
 
-            if (selectedUserId && typeof get().markChatAsSeen === "function") {
-              get().markChatAsSeen(selectedUserId);
-            }
-          } else {
-            // Only increment unseen for incoming messages (not ones we sent)
-            if (senderId !== authId) {
-              if (typeof get().incrementUnseenFor === "function") {
-                get().incrementUnseenFor(partnerId, newMessage);
-              } else {
-                const current = get().unseenCounts || {};
-                const prev = current[partnerId] || 0;
-                set({ unseenCounts: { ...current, [partnerId]: prev + 1 } });
-              }
+            if (get().unseenCounts[partnerId] > 0) {
+              get().markChatAsSeen(partnerId);
             }
           }
 
-          // update messagesCache (keep last 200)
           const newCacheForUser = [...prevCache, newMessage].slice(-200);
           set({
             messagesCache: {
@@ -703,7 +725,6 @@ export const useChatStore = create((set, get) => ({
             },
           });
 
-          // --- Build / update chat list entry (try to use real user info, else stub) ---
           const getUserInfo = async (id) => {
             if (typeof get().getUserFromCache === "function") {
               const u = get().getUserFromCache(id);
@@ -751,6 +772,7 @@ export const useChatStore = create((set, get) => ({
                 lastMessageText:
                   newMessage.plainText || (newMessage.image ? "📷 Image" : ""),
                 lastMessageSender: senderId,
+                lastMessageId: newMessage._id,
                 lastMessageTime: newMessage.createdAt,
                 plainText: newMessage.plainText ?? chat.plainText ?? "",
                 cipherText: newMessage.cipherText ?? chat.cipherText ?? null,
@@ -845,67 +867,55 @@ export const useChatStore = create((set, get) => ({
       })();
     };
 
-    // typing handler — match server payload { userId, isTyping }
     const onTyping = ({ userId, isTyping }) => {
       try {
         const newTyping = { ...get().typingStatuses, [userId]: !!isTyping };
         set({ typingStatuses: newTyping });
-        // console.log("[chat store] typing status updated", newTyping);
       } catch (err) {
         console.error("[chat store] error in onTyping:", err);
       }
     };
 
-    // Save handlers to store so unSubscribe can remove them
     set({ socketHandlers: { onNewMessage, onTyping } });
 
-    // Remove previous handlers if any (defensive)
     socket.off("newMessage", onNewMessage);
     socket.off("typing", onTyping);
 
-    // Attach handlers
     socket.on("newMessage", onNewMessage);
     socket.on("typing", onTyping);
 
-    const onDeleteMessage = ({ messageId, partnerId }) => {
+    const onDeleteMessage = ({ messageId, partnerId, wasUnseen }) => {
       const chatId = normalizeId(partnerId);
 
-      // 🔑 1️⃣ Capture deleted message BEFORE mutation
-      const stateBefore = get();
-      const deletedMsg =
-        stateBefore.messagesCache?.[chatId]?.find(
-          (m) => String(m._id) === String(messageId)
-        ) ?? null;
-
       set((state) => {
-        /* 2️⃣ Remove from open messages */
-        const updatedMessages = state.messages.filter(
-          (m) => String(m._id) !== String(messageId)
-        );
+        // 1️⃣ Remove message from open messages (if this chat is open)
+        const updatedMessages =
+          normalizeId(state.selectedUser?._id) === chatId
+            ? state.messages.filter((m) => String(m._id) !== String(messageId))
+            : state.messages;
 
-        /* 3️⃣ Remove from cache */
+        // 2️⃣ Remove message from cache (SOURCE OF TRUTH)
         const prevCache = state.messagesCache?.[chatId] || [];
         const updatedCache = prevCache.filter(
           (m) => String(m._id) !== String(messageId)
         );
 
-        /* 4️⃣ Decide last message source */
-        const openMessages =
-          normalizeId(state.selectedUser?._id) === chatId
-            ? updatedMessages
-            : [];
+        // 3️⃣ Determine last message SAFELY
+        const lastMsg = updatedCache.length > 0 ? updatedCache.at(-1) : null;
 
-        const lastMsg = openMessages.at(-1) || updatedCache.at(-1) || null;
-
-        /* 5️⃣ Update chats list SAFELY */
-        const updatedChats = (state.chats || []).map((chat) => {
+        // 4️⃣ Update chats preview
+        const updatedChats = state.chats.map((chat) => {
           if (normalizeId(chat._id) !== chatId) return chat;
+
+          // fallback to previous chat preview if cache is empty
+          const fallbackText =
+            chat.plainText || chat.lastMessageText || "No messages yet";
 
           return {
             ...chat,
             lastMessageText: lastMsg
               ? lastMsg.plainText || (lastMsg.image ? "📷 Image" : "")
-              : chat.lastMessageText || "No messages yet",
+              : fallbackText,
             lastMessageSender:
               lastMsg?.senderId ?? chat.lastMessageSender ?? null,
             lastMessageTime: lastMsg?.createdAt ?? chat.lastMessageTime ?? null,
@@ -925,26 +935,15 @@ export const useChatStore = create((set, get) => ({
         };
       });
 
-      /* 6️⃣ unseen logic AFTER state update */
-      const { authUser } = useAuthStore.getState();
-      const authId = normalizeId(authUser?._id);
-
-      const wasUnseen =
-        deletedMsg &&
-        normalizeId(deletedMsg.receiverId) === authId &&
-        normalizeId(deletedMsg.senderId) !== authId;
-
+      // 5️⃣ Unseen logic remains unchanged
       if (wasUnseen) {
         get().decrementUnseenFor(chatId, messageId);
       }
     };
 
-    // socket.off("deleteMessage", onDeleteMessage);
     socket.off("deleteMessage", onDeleteMessage);
 
-    socket.on("deleteMessage", ({ messageId, partnerId }) => {
-      onDeleteMessage({ messageId, partnerId });
-    });
+    socket.on("deleteMessage", onDeleteMessage);
 
     socket.on("deleteMessage", (data) => {
       console.log("DELETE EVENT", data);
@@ -1167,41 +1166,56 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.delete(`/messages/delete/${messageId}`);
 
       set((state) => {
-        const updatedMessages = state.messages.filter(
-          (m) => m._id !== messageId
+        const chatId = String(partnerId);
+
+        // 1️⃣ Update open messages (if chat is open)
+        const updatedMessages =
+          String(state.selectedUser?._id) === chatId
+            ? state.messages.filter((m) => String(m._id) !== String(messageId))
+            : state.messages;
+
+        // 2️⃣ Update cache
+        const prevCache = state.messagesCache?.[chatId] || [];
+        const updatedCache = prevCache.filter(
+          (m) => String(m._id) !== String(messageId)
         );
 
-        const lastMsg = updatedMessages
-          .filter(
-            (m) =>
-              String(m.senderId) === String(partnerId) ||
-              String(m.receiverId) === String(partnerId)
-          )
-          .slice(-1)[0];
+        // 3️⃣ Determine last message safely
+        const lastMsg = updatedCache.length > 0 ? updatedCache.at(-1) : null;
+
+        // 4️⃣ Update chats
+        const updatedChats = state.chats.map((chat) => {
+          if (String(chat._id) !== chatId) return chat;
+
+          const fallbackText =
+            chat.plainText || chat.lastMessageText || "No messages yet";
+
+          return {
+            ...chat,
+            lastMessageText: lastMsg
+              ? lastMsg.plainText || (lastMsg.image ? "📷 Image" : "")
+              : fallbackText,
+            lastMessageSender:
+              lastMsg?.senderId ?? chat.lastMessageSender ?? null,
+            lastMessageTime: lastMsg?.createdAt ?? chat.lastMessageTime ?? null,
+            plainText: lastMsg?.plainText ?? chat.plainText ?? "",
+            cipherText: lastMsg?.cipherText ?? chat.cipherText ?? null,
+            type: lastMsg?.type ?? chat.type ?? null,
+          };
+        });
 
         return {
           messages: updatedMessages,
-          chats: state.chats.map((chat) =>
-            String(chat._id) === String(partnerId)
-              ? {
-                  ...chat,
-                  lastMessageText: lastMsg
-                    ? lastMsg.plainText || (lastMsg.image ? "📷 Image" : "")
-                    : "No messages yet",
-                  lastMessageSender: lastMsg?.senderId || null,
-                  lastMessageTime: lastMsg?.createdAt || null,
-                  plainText: lastMsg?.plainText ?? "",
-                  cipherText: lastMsg?.cipherText ?? null,
-                  type: lastMsg?.type || null,
-                }
-              : chat
-          ),
+          messagesCache: {
+            ...state.messagesCache,
+            [chatId]: updatedCache,
+          },
+          chats: updatedChats,
         };
       });
     } catch (err) {
-      console.log(
+      console.error(
         "Delete message failed:",
-        err,
         err?.response?.data || err.message
       );
     }
