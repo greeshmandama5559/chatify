@@ -3,6 +3,7 @@ import http from "http";
 import express from "express";
 import ENV from "../ENV.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
+import Message from "../models/Message.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +43,19 @@ io.on("connection", (socket) => {
         isTyping,
       });
     }
+  });
+
+  socket.on("markSeen", async ({ partnerId }) => {
+    await Message.updateMany(
+      {
+        senderId: partnerId,
+        receiverId: socket.userId,
+        seen: false,
+      },
+      {
+        $set: { seen: true, seenAt: new Date() },
+      }
+    );
   });
 
   socket.on("disconnect", () => {

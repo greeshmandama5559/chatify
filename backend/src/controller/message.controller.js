@@ -43,7 +43,6 @@ export const getMessagesByUserId = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   try {
-    // Accept type and url from client as well
     const { text, image, type, url } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
@@ -61,17 +60,9 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl;
     if (image) {
-      const imageResponse = await cloudirany.uploader.upload(image);
-      imageUrl = imageResponse.secure_url;
+      const uploadRes = await cloudirany.uploader.upload(image);
+      imageUrl = uploadRes.secure_url;
     }
-
-    // check if any prior message exists between the two users (either direction)
-    const prior = await Message.exists({
-      $or: [
-        { senderId: senderId, receiverId: receiverId },
-        { senderId: receiverId, receiverId: senderId },
-      ],
-    });
 
     const newMessage = new Message({
       senderId,
@@ -80,11 +71,12 @@ export const sendMessage = async (req, res) => {
       image: imageUrl,
       type: type || undefined,
       url: url || undefined,
+      seen: false, // ⭐ IMPORTANT
     });
 
     await newMessage.save();
 
-    const minimalPayload = {
+    const payload = {
       _id: String(newMessage._id),
       senderId: String(senderId),
       receiverId: String(receiverId),
@@ -95,100 +87,123 @@ export const sendMessage = async (req, res) => {
       createdAt: newMessage.createdAt,
     };
 
-    const shouldPopulate = !prior;
-
-    let payload = minimalPayload;
-
-    if (shouldPopulate) {
-      console.log("Populating sender info for first message between users.");
-      await newMessage.populate("senderId", "fullName profilePic");
-      payload = {
-        ...minimalPayload,
-        senderName: newMessage.senderId?.fullName || "Unknown",
-        senderProfilePic: newMessage.senderId?.profilePic || "/avatar.png",
-      };
-    }
-
-    // Emit to receiver (support room or socket id)
+    // emit to receiver
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
-      if (Array.isArray(receiverSocketId)) {
-        receiverSocketId.forEach((sid) =>
-          io.to(sid).emit("newMessage", payload)
-        );
-      } else {
-        io.to(receiverSocketId).emit("newMessage", payload);
-      }
+      []
+        .concat(receiverSocketId)
+        .forEach((sid) => io.to(sid).emit("newMessage", payload));
     }
 
+    // emit to sender (multi-device support)
     const senderSocketId = getReceiverSocketId(senderId);
     if (senderSocketId) {
-      if (Array.isArray(senderSocketId)) {
-        senderSocketId.forEach((sid) => io.to(sid).emit("newMessage", payload));
-      } else {
-        io.to(senderSocketId).emit("newMessage", payload);
-      }
+      []
+        .concat(senderSocketId)
+        .forEach((sid) => io.to(sid).emit("newMessage", payload));
     }
 
     res.status(201).json(payload);
   } catch (error) {
-    console.error("Error in send message: " + error);
+    console.error("Error in send message:", error);
     res.status(500).json({ message: "internal server error" });
   }
 };
 
 export const getAllChats = async (req, res) => {
   try {
-    const loggedUserId = req.user._id;
+    const loggedUserId = req.user._id.toString();
 
-    // fetch all messages involving logged user
+    // 1️⃣ fetch all messages involving logged user
     const messages = await Message.find({
       $or: [{ senderId: loggedUserId }, { receiverId: loggedUserId }],
-    }).sort({ createdAt: -1 }); // newest first
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    // extract unique partner IDs
+    // 2️⃣ map latest message per partner
     const chatMap = new Map();
 
-    messages.forEach((msg) => {
+    for (const msg of messages) {
       const partnerId =
-        msg.senderId.toString() === loggedUserId.toString()
+        msg.senderId.toString() === loggedUserId
           ? msg.receiverId.toString()
           : msg.senderId.toString();
 
-      // first time this partner is added → it will be the latest message
       if (!chatMap.has(partnerId)) {
         chatMap.set(partnerId, msg);
       }
-    });
+    }
 
     const partnerIds = Array.from(chatMap.keys());
 
-    // fetch user details
-    const users = await User.find({ _id: { $in: partnerIds } }).select(
-      "-Password"
-    );
+    // 3️⃣ fetch users
+    const users = await User.find({ _id: { $in: partnerIds } })
+      .select("-Password")
+      .lean();
 
-    // attach last message + sort them
-    const chats = users
-      .map((user) => {
-        const lastMessage = chatMap.get(user._id.toString());
+    // 4️⃣ build chat list with unseen info
+    const chats = await Promise.all(
+      users.map(async (user) => {
+        const partnerId = user._id.toString();
+        const lastMessage = chatMap.get(partnerId);
+
+        // unseen count
+        const unseenCount = await Message.countDocuments({
+          senderId: partnerId,
+          receiverId: loggedUserId,
+          seen: false,
+        });
+
+        // last unseen message (for green line / new)
+        const lastUnseen = await Message.findOne({
+          senderId: partnerId,
+          receiverId: loggedUserId,
+          seen: false,
+        })
+          .sort({ createdAt: -1 })
+          .select("_id")
+          .lean();
+
         return {
-          ...user.toObject(),
+          ...user,
+
+          // last message info
+          lastMessageId: lastMessage._id,
           lastMessageText:
-            lastMessage.text || (lastMessage.image ? "📷 Image" : ""),
+            lastMessage.text ||
+            (lastMessage.image ? "📷 Image" : "No messages yet"),
           lastMessageTime: lastMessage.createdAt,
           lastMessageSender: lastMessage.senderId.toString(),
+
+          // ⭐ unseen info
+          unseenCount,
+          lastUnseenMessageId: lastUnseen?._id || null,
         };
       })
-      .sort(
-        (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime)
-      );
+    );
+
+    // 5️⃣ sort chats by latest message
+    chats.sort(
+      (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime)
+    );
 
     res.status(200).json(chats);
   } catch (error) {
-    console.error("Error in get all chats: " + error);
+    console.error("Error in get all chats:", error);
     res.status(500).json({ message: "internal server error" });
   }
+};
+
+export const getUnseenCounts = async (req, res) => {
+  const userId = req.user._id;
+
+  const unseen = await Message.aggregate([
+    { $match: { receiverId: userId, seen: false } },
+    { $group: { _id: "$senderId", count: { $sum: 1 } } },
+  ]);
+
+  res.json(unseen);
 };
 
 export const deleteMessage = async (req, res) => {
@@ -203,6 +218,11 @@ export const deleteMessage = async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
+    const wasUnseen =
+      !msg.seen && msg.receiverId.toString() !== msg.senderId.toString();
+
+    const wasUnseenForReceiver = !msg.seen;
+
     await msg.deleteOne();
 
     const senderSocketId = getReceiverSocketId(msg.senderId.toString());
@@ -213,6 +233,7 @@ export const deleteMessage = async (req, res) => {
       io.to(senderSocketId).emit("deleteMessage", {
         messageId,
         partnerId: msg.receiverId,
+        wasUnseen: false,
       });
     }
 
@@ -221,6 +242,7 @@ export const deleteMessage = async (req, res) => {
       io.to(receiverSocketId).emit("deleteMessage", {
         messageId,
         partnerId: msg.senderId,
+        wasUnseen: wasUnseenForReceiver,
       });
     }
 
@@ -232,4 +254,3 @@ export const deleteMessage = async (req, res) => {
       .json({ message: error.message || "Internal server error" });
   }
 };
-

@@ -25,9 +25,21 @@ const messageSchema = new mongoose.Schema(
       default: "text",
     },
     url: { type: String },
+
+    seen: {
+      type: Boolean,
+      default: false,
+    },
+
+    seenAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
+
+messageSchema.index({ receiverId: 1, seen: 1 });
+messageSchema.index({ senderId: 1, receiverId: 1, createdAt: -1 });
 
 const Message = mongoose.model("Message", messageSchema);
 
