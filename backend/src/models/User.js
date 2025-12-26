@@ -27,6 +27,24 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    bio: {
+      type: String,
+      maxlength: 200,
+      default: "",
+      trim: true,
+    },
+
+    interests: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: function (arr) {
+          return arr.length <= 10;
+        },
+        message: "You can add up to 10 interests only",
+      },
+    },
+
     googleId: {
       type: String,
       unique: true,
@@ -36,6 +54,21 @@ const userSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    likesCount: {
+      type: Number,
+      default: 0,
+    },
+
+    hasNewNotification: {
+      type: Boolean,
+      default: false
     },
 
     resetPasswordToken: String,

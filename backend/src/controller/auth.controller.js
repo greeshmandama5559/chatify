@@ -62,7 +62,7 @@ export const signup = async (req, res) => {
       fullName: updatedFullName,
       Email,
       Password: hashed,
-      authProvider: "local",  
+      authProvider: "local",
       verificationToken,
       verificationTokenExpiresAt,
     });
@@ -127,10 +127,13 @@ export const verifyEmail = async (req, res) => {
     }
 
     const user = new User({
-      fullName: pending.fullName,
-      Email: pending.Email,
-      Password: pending.Password,
-      isVerified: true,
+      _id: PendingUser._id,
+      fullName: PendingUser.fullName,
+      bio: PendingUser.bio,
+      profilePic: PendingUser.profilePic,
+      interests: PendingUser.interests,
+      isActive: PendingUser.isActive,
+      likesCount: PendingUser.likesCount,
     });
 
     const savedUser = await user.save();
@@ -156,6 +159,8 @@ export const verifyEmail = async (req, res) => {
       Email: savedUser.Email,
       profilePic: savedUser.profilePic,
       isVerified: savedUser.isVerified,
+      isActive: savedUser.isActive,
+      likesCount: savedUser.likesCount,
     };
 
     return res.status(200).json(userObj);
@@ -455,6 +460,74 @@ export const updateProfileName = async (req, res) => {
   }
 };
 
+export const updateActiveState = async (req, res) => {
+  try {
+    const { isActive } = req.body;
+
+    const userId = req.user._id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isActive: isActive },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      isActive: user.isActive,
+    });
+  } catch (error) {
+    console.log("error in active state (backend): ", error);
+    res
+      .status(500)
+      .json({ message: "error in active state (backend): ", error });
+  }
+};
+
+export const updateBio = async (req, res) => {
+  try {
+    const { bio } = req.body;
+
+    console.log("bio: ", bio);
+
+    const userId = req.user._id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { bio: bio },
+      { new: true }
+    );
+
+    res.json({ success: true, bio: user.bio });
+  } catch (err) {
+    res.status(500).json({ success: false, message: `Update failed: ${err}` });
+  }
+};
+
+export const updateIntrests = async (req, res) => {
+  try {
+    const { interests } = req.body;
+
+    console.log("intrets: ", interests);
+
+    const userId = req.user._id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { interests: interests },
+      { new: true }
+    );
+
+    res.json({ success: true, interests: user.interests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: `Update failed: ${err}` });
+  }
+};
+
 export async function getStreamToken(req, res) {
   try {
     const userId = req.user && (req.user._id || req.user.id);
@@ -494,5 +567,28 @@ export const deleteUser = async (req, res) => {
   } catch (error) {
     console.log("Error in delete user: ", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: "no user id available" });
+    }
+
+    const selectedUser = await User.findById(userId);
+    if (!selectedUser) {
+      return res.status(400).json({ message: "user not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      selectedUser: selectedUser,
+    });
+  } catch (error) {
+    console.log("error in get user by id: ", error);
+    res.status(500).json({ message: "internal server error" });
   }
 };

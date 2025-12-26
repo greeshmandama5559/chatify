@@ -1,0 +1,151 @@
+import User from "../models/User.js";
+import ProfileLike from "../models/ProfileLike.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
+
+export const likeProfile = async (req, res) => {
+  const likedUserId = req.params.userId;
+  const likedBy = req.user._id;
+
+  if (likedUserId === likedBy.toString()) {
+    return res
+      .status(400)
+      .json({ message: "You cannot like your own profile" });
+  }
+
+  try {
+    const like = await ProfileLike.create({
+      likedBy: likedBy,
+      likedUser: likedUserId,
+      hasLiked: true,
+    });
+
+    await User.findByIdAndUpdate(likedUserId, {
+      $inc: { likesCount: 1 },
+      hasNewNotification: true,
+    });
+
+    const receiverSocketId = getReceiverSocketId(likedUserId.toString());
+
+    if (receiverSocketId) {
+      console.log("sending like.......");
+      io.to(receiverSocketId).emit("profile:liked", {
+        likedBy,
+      });
+    }
+
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.log("error in like profile (backend): ", error);
+    return res.status(500).json({ message: "internal server error" });
+  }
+};
+
+export const unlikeProfile = async (req, res) => {
+  const likedUserId = req.params.userId;
+  const likedBy = req.user._id;
+
+  if (likedUserId === likedBy.toString()) {
+    return res.status(400).json({
+      message: "You cannot unlike your own profile",
+    });
+  }
+
+  try {
+    const removed = await ProfileLike.findOneAndDelete({
+      likedBy,
+      likedUser: likedUserId,
+    });
+
+    if (!removed) {
+      return res.status(404).json({ message: "Like not found" });
+    }
+
+    await User.findByIdAndUpdate(likedUserId, {
+      $inc: { likesCount: -1 },
+      hasNewNotification: false,
+    });
+
+    const receiverSocketId = getReceiverSocketId(likedUserId.toString());
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("profile:unliked", {
+        likedBy,
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.log("error in unlike profile (backend): ", error);
+    return res.status(500).json({ message: "internal server error" });
+  }
+};
+
+export const updatehasNewNotification = async (req, res) => {
+  try {
+    const { isSeen } = req.body;
+    const authId = req.user._id;
+
+    if (!authId){
+      return res.status(400).json({messsage: "no auth id"});
+    }
+
+    const authUser = await User.findByIdAndUpdate(
+      authId,
+      {hasNewNotification: isSeen},
+      {new: true},
+    );
+
+    if(!authUser){
+      return res.status(400).json({message: "no user found"});
+    }
+
+    res.status(200).json({success: true});
+
+
+  } catch (error) {
+    console.log("error in update notification: ", error);
+    return res.status(500).json({message: "internal server errror"});
+  }
+}
+
+export const getLikesCount = async (req, res) => {
+  const user = await User.findById(req.params.userId).select("likesCount");
+  res.json({ likesCount: user.likesCount });
+};
+
+export const getMyLikes = async (req, res) => {
+  const likes = await ProfileLike.find({ likedUser: req.user._id }).populate(
+    "likedBy",
+    " fullName profilePic isActive likesCount"
+  );
+
+  res.json(likes);
+};
+
+export const getUserByName = async (req, res) => {
+  try {
+    const { userName } = req.query;
+
+    if (!userName?.trim()) {
+      return res.status(400).json({ message: "Search term required" });
+    }
+
+    const users = await User.find({
+      _id: { $ne: req.user._id },
+      fullName: {
+        $regex: userName.trim(),
+        $options: "i",
+      },
+    }).select("-password");
+
+    console.log("users: ", users);
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error("error in get user by name:", error);
+    res.status(500).json({ message: "internal server error" });
+  }
+};

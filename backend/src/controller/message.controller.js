@@ -10,7 +10,17 @@ export const getAllContacts = async (req, res) => {
       _id: { $ne: loggedUserId },
     }).select("-Password");
 
-    res.status(200).json(filteredUsers);
+    const usersData = filteredUsers.map((user) => ({
+      _id: user._id,
+      fullName: user.fullName,
+      bio: user.bio,
+      profilePic: user.profilePic,
+      interests: user.interests,
+      isActive: user.isActive,
+      likesCount: user.likesCount,
+    }));
+
+    res.status(200).json(usersData);
   } catch (error) {
     console.error("Error in get all contacts: " + error);
     res.status(500).json({ message: "internal server error" });
@@ -71,7 +81,7 @@ export const sendMessage = async (req, res) => {
       image: imageUrl,
       type: type || undefined,
       url: url || undefined,
-      seen: false, // ⭐ IMPORTANT
+      seen: false, 
     });
 
     await newMessage.save();
@@ -92,7 +102,11 @@ export const sendMessage = async (req, res) => {
     if (receiverSocketId) {
       []
         .concat(receiverSocketId)
-        .forEach((sid) => io.to(sid).emit("newMessage", payload));
+        .forEach((sid) =>
+          io
+            .to(sid)
+            .emit("newMessage", { ...payload, fullName: req.user.fullName })
+        );
     }
 
     // emit to sender (multi-device support)

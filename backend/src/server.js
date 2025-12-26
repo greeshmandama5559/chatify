@@ -9,6 +9,7 @@ import { app, server } from './lib/socket.js';
 import passport from "passport";
 import "./utils/passport.js";
 import path from "path";
+import profile from './routes/profile.route.js';
 
 app.use(cors({
   origin: ENV.CLIENT_URL, 
@@ -25,6 +26,7 @@ const PORT = ENV.PORT || 3000;
 
 app.use('/api/auth', authRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/profile', profile);
 
 const __dirname = path.resolve();
 

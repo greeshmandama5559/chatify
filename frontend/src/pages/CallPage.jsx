@@ -160,7 +160,7 @@ const CallContent = () => {
   if (callingState === CallingState.JOINING) return <VideoLoader />;
 
   if (callingState === CallingState.LEFT) {
-    navigate("/");
+    navigate("/chats");
     return null;
   }
 
