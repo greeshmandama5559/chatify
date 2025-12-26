@@ -1,21 +1,23 @@
 import { useChatStore } from "../store/useChatStore";
-
-import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
+import { useProfileStore } from "../store/useProfileStore";
 import ProfileHeader from "../components/ProfileHeader";
 import ActiveTabSwitch from "../components/ActiveTabSwitch";
 import ChatsList from "../components/ChatsList";
 import ContactList from "../components/ContactList";
 import ChatContainer from "../components/ChatContainer";
 import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
-import { ArrowLeft } from "lucide-react"; // optional icon, install lucide-react if not present
+import SideNavBar from "../components/SideNavBar";
+import SelectedUserProfile from "./SelectedUserProfile";
 
 function ChatPage() {
   const { activeTab, selectedUser } = useChatStore();
 
+  const { isVisitingProfile } = useProfileStore();
+
   return (
     // ensure it occupies the full viewport
-    <div className="min-h-0 min-w-screen bg-slate-900">
-      <div className="flex flex-col md:flex-row h-screen">
+    <div className="min-h-screen w-full bg-slate-900 md:pl-20 ">
+      <div className="flex flex-col md:flex-row h-screen pb-16 md:pb-0">
         {/* LEFT SIDE (Contacts/Chats) */}
         {/* - On mobile: hidden when a chat is open (selectedUser exists). 
             - On md+: always visible. */}
@@ -38,9 +40,17 @@ function ChatPage() {
             ${selectedUser ? "flex w-full" : "hidden md:flex flex-1"}`}
         >
           {/* Chat content or placeholder */}
-          {selectedUser ? <ChatContainer /> : <NoConversationPlaceholder />}
+          {selectedUser && isVisitingProfile ? (
+            <SelectedUserProfile />
+          ) : selectedUser ? (
+            <ChatContainer />
+          ) : (
+            <NoConversationPlaceholder />
+          )}
         </div>
       </div>
+
+      <SideNavBar />
     </div>
   );
 }

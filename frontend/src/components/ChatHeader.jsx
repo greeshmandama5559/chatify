@@ -8,15 +8,16 @@ import { StreamChat } from "stream-chat";
 import toast from "react-hot-toast";
 import CallButton from "./CallButton";
 import { getStreamToken } from "../store/api";
-import LinkifyText from "./chat-container-components/LinkifyText";
+import { useProfileStore } from "../store/useProfileStore";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
-
-console.log("STREAM_API_KEY:", STREAM_API_KEY);
 
 function ChatHeader() {
   const { selectedUser, setSelectedUser, sendMessage } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  // eslint-disable-next-line no-unused-vars
+  const { setIsVisitingProfile, likeCheck } = useProfileStore();
 
   const [channel, setChannel] = useState(null);
 
@@ -29,6 +30,7 @@ function ChatHeader() {
     queryFn: getStreamToken,
     enabled: !!authUser,
   });
+
 
   useEffect(() => {
     const initChannelId = async () => {
@@ -60,7 +62,8 @@ function ChatHeader() {
     };
 
     initChannelId();
-  }, [tokenData, authUser, targetUserId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenData]);
 
   if (!selectedUser) return null;
 
@@ -112,7 +115,10 @@ function ChatHeader() {
         </button>
 
         {/* Avatar */}
-        <div className="relative flex-shrink-0">
+        <div className="relative shrink-0 cursor-pointer" onClick={() =>{
+          // likeCheck(selectedUser?._id);
+          setIsVisitingProfile(true);
+        }}>
           <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-700">
             <img
               src={selectedUser.profilePic || "/avatar.png"}
@@ -122,35 +128,39 @@ function ChatHeader() {
           </div>
 
           {/* Status Dot */}
-          <span
-            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900 ${
-              isOnline
-                ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
-                : "bg-slate-500"
-            }`}
-          ></span>
+          {selectedUser.isActive && (
+            <span
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900 ${
+                isOnline
+                  ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                  : "bg-slate-500"
+              }`}
+            ></span>
+          )}
         </div>
 
         {/* Username */}
-        <div className="min-w-0">
+        <div className="min-w-0 cursor-pointer" onClick={() =>{
+          // likeCheck(selectedUser?._id);
+          setIsVisitingProfile(true);
+        }}>
           <h3 className="text-slate-100 font-semibold tracking-wide truncate">
             {selectedUser.fullName}
           </h3>
-          <p
-            className={`text-xs font-medium mt-1 ${
-              isOnline ? "text-cyan-400" : "text-slate-500"
-            }`}
-          >
-            {isOnline ? "Active Now" : "Offline"}
-          </p>
+          {selectedUser.isActive && (
+            <p
+              className={`text-xs font-medium mt-1 ${
+                isOnline ? "text-cyan-400" : "text-slate-500"
+              }`}
+            >
+              {isOnline ? "Active Now" : "Offline"}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="flex justify-around items-center max-w-40 gap-10">
-        <CallButton
-          handleVideoCall={handleVideoCall}
-          disabled={!channel || !isOnline}
-        />
+        <CallButton handleVideoCall={handleVideoCall} disabled={!channel} />
 
         <button
           onClick={() => setSelectedUser(null)}

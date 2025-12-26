@@ -1,12 +1,14 @@
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
 import NoChatsFound from "./NoChatsFound";
 import { useAuthStore } from "../store/useAuthStore";
+import { useProfileStore } from "../store/useProfileStore";
+import { useNavigate } from "react-router-dom";
 
 function ChatsList() {
   const {
-    getMyChatPartners,
+    // getMyChatPartners,
     chats = [],
     isUsersLoading,
     selectedUser,
@@ -14,18 +16,22 @@ function ChatsList() {
     unseenCounts = {},
     lastUnseenMessageId = {},
     typingStatuses = {},
-    hydrateFromServer,
+    // hydrateFromServer,
   } = useChatStore();
 
   const { onlineUsers = [], authUser = {} } = useAuthStore();
 
-  useEffect(() => {
-    const hydrate = async () => {
-      await getMyChatPartners();
-      await hydrateFromServer();
-    };
-    hydrate();
-  }, [getMyChatPartners, hydrateFromServer]); 
+  const { setIsVisitingProfile } = useProfileStore();
+
+  const navigate = useNavigate();
+
+  // useEffect(() => {
+  //   const hydrate = async () => {
+  //     await getMyChatPartners();
+  //     await hydrateFromServer();
+  //   };
+  //   hydrate();
+  // }, [getMyChatPartners, hydrateFromServer]);
 
   if (isUsersLoading) return <UsersLoadingSkeleton />;
   if (!Array.isArray(chats) || chats.length === 0) return <NoChatsFound />;
@@ -75,12 +81,9 @@ function ChatsList() {
             key={chatId}
             onClick={() => {
               if (!isSelected) {
+                setIsVisitingProfile(false);
                 setSelectedUser(chat);
-                window.history.pushState(
-                  { chat: chat._id },
-                  "",
-                  `#/chat/${chat._id}`
-                );
+                navigate(`/chats/${chat._id}`)
               }
             }}
             aria-pressed={isSelected}
@@ -101,7 +104,7 @@ function ChatsList() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              {isOnline && (
+              {isOnline && chat.isActive && (
                 <span className="absolute mb-0.5 mr-0.5 bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full shadow-sm" />
               )}
             </div>
@@ -151,47 +154,50 @@ function ChatsList() {
                 )}
 
                 {!showTyping && previewValue ? (
-  <>
-    {isMeSender && (
-      <span className={isSelected ? "text-cyan-400/80" : "text-slate-400"}>
-        You: <span className="truncate">{previewValue}</span>
-      </span>
-    )}
+                  <>
+                    {isMeSender && (
+                      <span
+                        className={
+                          isSelected ? "text-cyan-400/80" : "text-slate-400"
+                        }
+                      >
+                        You: <span className="truncate">{previewValue}</span>
+                      </span>
+                    )}
 
-    {!isMeSender && (
-      <span
-        className={`flex-1 truncate inline-flex items-center gap-2 ${
-          isSelected
-            ? "text-cyan-400/80"
-            : hasUnseen
-            ? "text-green-200 font-semibold"
-            : "text-slate-400"
-        }`}
-      >
-        {/* Use hasUnseen instead of lastUnseenMessageId */}
-        {hasUnseen && (
-          <span
-            aria-hidden
-            className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0"
-          />
-        )}
-        <span className="truncate">{previewValue}</span>
-        {hasUnseen && (
-          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
-            new
-          </span>
-        )}
-      </span>
-    )}
-  </>
-) : (
-  !showTyping && (
-    <span className="text-slate-500 italic">
-      🎥 video call initiated
-    </span>
-  )
-)}
-                 
+                    {!isMeSender && (
+                      <span
+                        className={`flex-1 truncate inline-flex items-center gap-2 ${
+                          isSelected
+                            ? "text-cyan-400/80"
+                            : hasUnseen
+                            ? "text-green-200 font-semibold"
+                            : "text-slate-400"
+                        }`}
+                      >
+                        {/* Use hasUnseen instead of lastUnseenMessageId */}
+                        {hasUnseen && (
+                          <span
+                            aria-hidden
+                            className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0"
+                          />
+                        )}
+                        <span className="truncate">{previewValue}</span>
+                        {hasUnseen && (
+                          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
+                            new
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  !showTyping && (
+                    <span className="text-slate-500 italic">
+                      🎥 video call initiated
+                    </span>
+                  )
+                )}
               </p>
             </div>
           </button>

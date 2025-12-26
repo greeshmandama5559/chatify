@@ -13,6 +13,10 @@ import {
   googleSuccess,
   updateProfileName,
   completeProfile,
+  updateBio,
+  updateIntrests,
+  updateActiveState,
+  getUserById,
 } from "../controller/auth.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
@@ -59,6 +63,12 @@ route.put("/update-profile", protectedRoute, updateProfile);
 
 route.put("/update-profile-name", protectedRoute, updateProfileName);
 
+route.put("/update-bio", protectedRoute, updateBio);
+
+route.put("/update-intrests", protectedRoute, updateIntrests);
+
+route.put("/update-active-status", protectedRoute ,updateActiveState);
+
 route.get("/stream-token", protectedRoute, getStreamToken);
 
 route.get("/check", protectedRoute, (req, res) => {
@@ -66,5 +76,7 @@ route.get("/check", protectedRoute, (req, res) => {
 });
 
 route.delete("/delete-user/:id", deleteUser);
+
+route.get("/find-user/:userId", getUserById);
 
 export default route;

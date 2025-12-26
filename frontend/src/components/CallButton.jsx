@@ -6,14 +6,10 @@ function CallButton({ handleVideoCall, disabled }) {
       onClick={disabled ? undefined : handleVideoCall}
       disabled={disabled}
       className={`
-        py-2 px-3 rounded-full flex justify-center items-center transition
-        ${disabled
-          ? "bg-slate-700 opacity-40 cursor-not-allowed"
-          : "bg-cyan-500 hover:bg-cyan-700 cursor-pointer"
-        }
+        py-2 px-3 rounded-full flex justify-center items-center transition cursor-pointer
       `}
     >
-      <VideoIcon size={22} className="text-white" />
+      <VideoIcon size={25} className="text-cyan-400 hover:text-cyan-600" />
     </button>
   );
 }

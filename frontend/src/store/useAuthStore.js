@@ -185,9 +185,12 @@ export const useAuthStore = create((set, get) => ({
   completeProfile: async (state, userName) => {
     set({ isLoading: true });
     try {
-      const res = await axiosInstance.post("/auth/complete-profile", { state, fullName: userName });
+      const res = await axiosInstance.post("/auth/complete-profile", {
+        state,
+        fullName: userName,
+      });
       set({ authUser: res.data, isAuthenticated: true, pendingSignup: null });
-      return {success: true};
+      return { success: true };
     } catch (error) {
       console.error("error in set cahnge:", error);
       set({ error: error?.response?.data?.message });
@@ -236,6 +239,60 @@ export const useAuthStore = create((set, get) => ({
         error?.response?.data ?? error?.message ?? error
       );
       toast.error("Failed to update profile Name");
+    }
+  },
+
+  updateActiveStatus: async (isActive) => {
+    try {
+      const res = await axiosInstance.put("/auth/update-active-status", {
+        isActive: isActive.isActive,
+      });
+      set((state) => ({
+        authUser: { ...state.authUser, isActive: res.data.isActive },
+      }));
+    } catch (error) {
+      console.log(
+        "Error in update status (frontend):",
+        error?.response?.data?.message
+      );
+    }
+  },
+
+  updateBio: async (bio) => {
+    try {
+      const res = await axiosInstance.put("/auth/update-bio", {
+        bio: bio.bio,
+      });
+      set((state) => ({
+        authUser: {
+          ...state.authUser,
+          bio: res.data.bio,
+        }
+      }));
+    } catch (error) {
+      console.log(
+        "Error in update bio (frontend):",
+        error?.response?.data?.message
+      );
+    }
+  },
+
+  updateIntrests: async (interests) => {
+    try {
+      const res = await axiosInstance.put("/auth/update-intrests", {
+        interests: interests.interests,
+      });
+      set((state) => ({
+        authUser: {
+          ...state.authUser,
+          interests : res.data.interests,
+        }
+      }));
+    } catch (error) {
+      console.log(
+        "Error in update intrests (frontend):",
+        error?.response?.data?.message
+      );
     }
   },
 

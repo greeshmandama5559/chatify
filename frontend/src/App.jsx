@@ -11,8 +11,23 @@ import CallPage from "./pages/CallPage";
 import EmailVerification from "./pages/EmailVerification";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import CompleteProfile from "./pages/CompleteProfile";
+import Home from "./pages/Home";
+import ProfilePage from "./pages/ProfilePage";
+import DiscoverPage from "./pages/DiscoverPage";
+import { useProfileStore } from "./store/useProfileStore";
+import NotificationPage from "./pages/NotificationPage";
+import SelectedUserProfile from "./pages/SelectedUserProfile";
+import DiscoverPageLoadingSkeleton from "./components/DiscoverPageLoadingSkeleton";
 
 const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
+const ProtectedLogRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -67,10 +82,41 @@ function App() {
     subscribeToMessages();
   }, [socket, subscribeToMessages]);
 
+  const { subscribeToLike, likeCheck } = useProfileStore();
+
+  const { selectedUser } = useChatStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    subscribeToLike();
+
+    return () => {
+      socket.off("profile:liked");
+      socket.off("profile:unliked");
+    };
+  }, [socket, subscribeToLike]);
+
+  useEffect(() => {
+    if (selectedUser?._id) {
+      likeCheck(selectedUser?._id);
+    }
+  }, [likeCheck, selectedUser?._id]);
+
+  const { getMyChatPartners,hydrateFromServer } = useChatStore();
+
+  useEffect(() => {
+    const hydrate = async () => {
+      await getMyChatPartners();
+      await hydrateFromServer();
+    };
+    hydrate();
+  }, [getMyChatPartners, hydrateFromServer]);
+
   if (isCheckingAuth) return <PageLoader />;
 
   return (
-    <div className="min-h-screen bg-slate-900 relative flex items-center justify-center overflow-hidden">
+    <div className="bg-slate-900 relative min-h-screen overflow-hidden flex justify-center items-center">
       {/* DECORATORS - GRID BG & GLOW SHAPES */}
       {/* <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" /> */}
       <div className="absolute top-0 -left-4 size-96 bg-pink-500 opacity-20 blur-[100px]" />
@@ -78,22 +124,66 @@ function App() {
 
       <Routes>
         <Route
-          index
+          path="/chats"
           element={
-            <ProtectedRoute>
+            <ProtectedLogRoute>
               <ChatPage />
-            </ProtectedRoute>
+            </ProtectedLogRoute>
+          }
+        />
+
+        <Route
+          path="/chats/:chatId"
+          element={
+            <ProtectedLogRoute>
+              <ChatPage />
+            </ProtectedLogRoute>
+          }
+        />
+
+        <Route path="/" element={<Home />} />
+
+        <Route
+          path="/discover"
+          element={
+            <ProtectedLogRoute>
+              <DiscoverPage />
+            </ProtectedLogRoute>
+          }
+        />
+
+        <Route
+          path="/user-profile"
+          element={
+            <ProtectedLogRoute>
+              <SelectedUserProfile />
+            </ProtectedLogRoute>
+          }
+        />
+
+        <Route
+          path="/user-profile/:userId"
+          element={
+            <ProtectedLogRoute>
+              <SelectedUserProfile />
+            </ProtectedLogRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedLogRoute>
+              <ProfilePage />
+            </ProtectedLogRoute>
           }
         />
 
         <Route path="/verify-email" element={<EmailVerification />} />
 
-        <Route
-          path="/complete-profile"
-          element={
-              <CompleteProfile />
-          }
-        />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
+
+        <Route path="/notifications" element={<NotificationPage />} />
 
         <Route
           path="/signup"

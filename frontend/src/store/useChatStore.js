@@ -67,6 +67,39 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  fetchUserById: async (userId) => {
+    try {
+      const res = await axiosInstance.get(`auth/find-user/${userId}`);
+
+      if (res?.data?.success) {
+        set({ selectedUser: res.data.selectedUser });
+      }
+    } catch (error) {
+      console.log("error in fetch user: ", error?.response?.data?.message);
+      toast.error("something when wrong");
+    }
+  },
+
+  addChatToTop: (contact) =>
+    set((state) => {
+      // remove if already exists
+      const exists = state.chats.find((chat) => chat._id === contact._id);
+
+      // If already exists → move to top
+      if (exists) {
+        return {
+          chats: [
+            exists,
+            ...state.chats.filter((chat) => chat._id !== contact._id),
+          ],
+        };
+      }
+
+      return {
+        chats: [contact, ...state.chats],
+      };
+    }),
+
   // --------------------- LOAD CONTACTS ---------------------
   getAllContacts: async () => {
     set({ isUsersLoading: true });
@@ -97,7 +130,6 @@ export const useChatStore = create((set, get) => ({
         chatsFromServer.map(async (c) => {
           try {
             const chat = { ...c };
-            // server may use lastMessageText or text; normalize to cipherText
             const cipher = chat.lastMessageText ?? chat.text ?? null;
             chat.lastMessageId = chat.lastMessage?._id;
             chat.cipherText = cipher ?? null;
@@ -758,7 +790,8 @@ export const useChatStore = create((set, get) => ({
               );
             }
             return {
-              fullName: newMessage.senderName || "Loading...",
+              fullName:
+                newMessage.senderName || newMessage.fullName || "Loading...",
               profilePic: newMessage.senderProfilePic || "/avatar.png",
             };
           };
@@ -793,7 +826,8 @@ export const useChatStore = create((set, get) => ({
           if (!partnerExists) {
             const stubChat = {
               _id: partnerId,
-              fullName: newMessage.senderName || "Loading...",
+              fullName:
+                newMessage.senderName || newMessage.fullName || "Loading...",
               profilePic: newMessage.senderProfilePic || "/avatar.png",
               lastMessageText:
                 newMessage.text ||

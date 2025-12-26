@@ -10,7 +10,8 @@
 html, body {
   padding: 0;
   margin-top: 0;
-  overflow: hidden;
+  /* overflow: hidden; */
+  scrollbar-width: none;
 
 }
 

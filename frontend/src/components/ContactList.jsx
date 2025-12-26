@@ -29,9 +29,13 @@ function ContactList() {
         return (
           <button
             key={contact._id}
-            onClick={() => { 
-              setSelectedUser(contact)
-              window.history.pushState({ chat: contact._id }, "", `#/chat/${contact._id}`);
+            onClick={() => {
+              setSelectedUser(contact);
+              window.history.pushState(
+                { chat: contact._id },
+                "",
+                `#/chat/${contact._id}`
+              );
             }}
             className={`w-full p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group
               ${
@@ -51,21 +55,27 @@ function ContactList() {
                 />
               </div>
               {/* Online Dot */}
-              {isOnline && (
+              {isOnline && contact.isActive && (
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full shadow-sm"></span>
               )}
             </div>
 
             {/* Text Info */}
             <div className="text-left min-w-0">
-              <h4 className={`font-medium text-sm truncate transition-colors ${
-                 isSelected ? "text-cyan-100" : "text-slate-300 group-hover:text-white"
-              }`}>
+              <h4
+                className={`font-medium text-sm truncate transition-colors ${
+                  isSelected
+                    ? "text-cyan-100"
+                    : "text-slate-300 group-hover:text-white"
+                }`}
+              >
                 {contact.fullName}
               </h4>
-              <p className="text-xs text-slate-500 truncate group-hover:text-slate-400">
-                {isOnline ? "Online" : "Offline"}
-              </p>
+              {contact.isActive && (
+                <p className="text-xs text-slate-500 truncate group-hover:text-slate-400">
+                  {isOnline ? "Online" : "Offline"}
+                </p>
+              )}
             </div>
           </button>
         );

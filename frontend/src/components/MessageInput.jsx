@@ -211,7 +211,7 @@ function MessageInput() {
         </div>
       )}
 
-      <div className="p-4 md:p-4 bg-slate-900/90 backdrop-blur-lg" style={{ minHeight: 64 }}>
+      <div className="px-4 py-3 md:p-4 bg-slate-900/90 backdrop-blur-lg" style={{ minHeight: 64 }}>
         {/* Input Area */}
         <form
           onSubmit={handleSendMessage}
