@@ -7,7 +7,7 @@ import { useChatStore } from "../store/useChatStore";
 import EmptyNotifications from "../components/EmptyNotifications";
 
 function NotificationPage() {
-  const { likedUsers, getMyLikes, setHasNewNotification, likesLoading } =
+  const { likedUsersForNotification, setHasNewNotification, likesLoading } =
     useProfileStore();
 
   const { setSelectedUser, addChatToTop } = useChatStore();
@@ -15,9 +15,12 @@ function NotificationPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getMyLikes();
     setHasNewNotification(false);
-  }, [getMyLikes, setHasNewNotification]);
+  }, [setHasNewNotification]);
+
+  // useEffect(() => {
+  //   getMyLikesForNotification();
+  // }, [getMyLikesForNotification]);
 
   return (
     <div className="px-2 relative z-10 w-full md:ml-19 flex justify-center bg-[#08090a] text-slate-200 overflow-y-auto scrollbar-hide">
@@ -27,7 +30,7 @@ function NotificationPage() {
         <div className="absolute top-1/2 -right-24 w-[400px] h-[400px] bg-purple-500/10 blur-[120px] rounded-full" />
       </div>
 
-      {likedUsers.length > 0 || likesLoading ? (
+      {likedUsersForNotification.length > 0 || likesLoading ? (
         <div className="relative h-dvh z-10 w-full max-w-2xl mt-10 flex flex-col gap-6">
           {/* Header Section */}
           <div className="flex items-center justify-between px-2">
@@ -67,7 +70,7 @@ function NotificationPage() {
               </div>
             ) : (
               <div className="overflow-y-auto max-h-[70vh] scrollbar-hide">
-                {likedUsers.map((like) => (
+                {likedUsersForNotification.map((like) => (
                   <div
                     key={like._id}
                     className="group flex items-center justify-between p-4 border-b border-zinc-800/50 hover:bg-white/2 transition-all cursor-pointer"

@@ -18,6 +18,7 @@ export const useAuthStore = create((set, get) => ({
   onlineUsers: [],
   error: null,
   pendingSignup: null,
+  similarInteretsUsers: [],
 
   checkAuth: async () => {
     try {
@@ -231,14 +232,22 @@ export const useAuthStore = create((set, get) => ({
         "/auth/update-profile-name",
         fullName
       );
-      set({ authUser: res.data });
-      toast.success("Name updated");
+      if (res.data.success) {
+        set((state) => ({
+          authUser: {
+            ...state.authUser,
+            fullName: res.data.fullName,
+          },
+        }));
+
+        toast.success("Name Updated");
+      }
     } catch (error) {
-      console.error(
-        "Error in update profile Name: ",
-        error?.response?.data ?? error?.message ?? error
-      );
-      toast.error("Failed to update profile Name");
+      if (error?.response?.data?.message) {
+        toast.error(error?.response?.data?.message);
+      } else {
+        toast.error("Failed to update name");
+      }
     }
   },
 
@@ -267,7 +276,7 @@ export const useAuthStore = create((set, get) => ({
         authUser: {
           ...state.authUser,
           bio: res.data.bio,
-        }
+        },
       }));
     } catch (error) {
       console.log(
@@ -285,8 +294,8 @@ export const useAuthStore = create((set, get) => ({
       set((state) => ({
         authUser: {
           ...state.authUser,
-          interests : res.data.interests,
-        }
+          interests: res.data.interests,
+        },
       }));
     } catch (error) {
       console.log(
@@ -326,6 +335,21 @@ export const useAuthStore = create((set, get) => ({
       toast.error("please signup again");
     } catch (error) {
       console.log("error in deleting user", error);
+    }
+  },
+
+  getSimilarInterestUsers: async () => {
+    try {
+      const res = await axiosInstance.get("/auth/similar-interests");
+
+      console.log("simila users: ", res.data);
+
+      set({ similarInteretsUsers: res.data });
+    } catch (error) {
+      console.log(
+        "error in get similar interests (frontend): ",
+        error?.response?.data?.message
+      );
     }
   },
 }));

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Sparkles, X, ArrowLeft, MessageCircle } from "lucide-react";
+import { Sparkles, X, ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,9 +9,8 @@ import LikeButton from "../components/LikeButton";
 import { useAuthStore } from "../store/useAuthStore";
 import ProfileSkeleton from "../components/ProfileSkeleton";
 
-function SelectedUserProfile() {
-  const { selectedUser, fetchUserById, setSelectedUser, isUserLoading } =
-    useChatStore();
+function SelectedUserChatProfile() {
+  const { selectedUser, fetchUserById, isUserLoading } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
 
@@ -31,6 +30,14 @@ function SelectedUserProfile() {
   const [modalSrc, setModalSrc] = useState(null);
 
   const { userId } = useParams();
+
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === "Escape") setIsVisitingProfile(false);
+    };
+    window.addEventListener("keydown", handleEscKey);
+    return () => window.removeEventListener("keydown", handleEscKey);
+  }, [isVisitingProfile, setIsVisitingProfile]);
 
   useEffect(() => {
     if (!isVisitingProfile && !selectedUser) {
@@ -63,41 +70,27 @@ function SelectedUserProfile() {
     hasLiked ? unlikeProfile(selectedUser._id) : likeProfile(selectedUser._id);
   };
 
-  const handleMessage = (selectedUserId) => {
-    setSelectedUser(selectedUser);
-
-    setIsVisitingProfile(false);
-
-    navigate(`/chats/${selectedUserId}`);
-  };
-
   if (loading || isUserLoading) return <ProfileSkeleton />;
 
   return (
-    <div className="relative min-h-screen w-full bg-[#0a0f1a] text-slate-200 selection:bg-cyan-500/30">
-      {/* --- Navigation Header --- */}
-      <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#0a0f1a]/80 border-b border-white/5 px-6 py-4">
-        <div className="max-w-8xl mx-auto flex justify-between items-center">
-          <button
-            onClick={() =>
-              isVisitingProfile ? setIsVisitingProfile(false) : navigate(-1)
-            }
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
-          >
-            <ArrowLeft
-              size={20}
-              className="group-hover:-translate-x-1 transition-transform"
-            />
-            <span className="text-sm font-medium">Back</span>
-          </button>
-          <p className="text-cyan-400 font-medium mt-3 flex items-center gap-2">
-            <Sparkles size={16} /> Verified Member
-          </p>
-        </div>
-      </nav>
+    <div className="relative flex flex-col h-full w-full bg-[#0a0f1a] text-slate-200 min-h-0 py-4 px-4 overflow-y-auto scrollbar-hide">
+      <div className="flex items-center flex- justify-end top-0 gap-2 p-3 bg-[#0a0f1a]">
+        <button
+          onClick={() =>
+            isVisitingProfile ? setIsVisitingProfile(false) : navigate(-1)
+          }
+          className="flex bg-[#0a0f1a] text-slate-400 hover:text-white transition-colors group"
+        >
+          <ArrowLeft
+            size={20}
+            className="group-hover:-translate-x-1 transition-transform"
+          />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-25">
+      <main className="mx-auto w-full px-6 py-12">
+        <div className="grid grid-cols-1">
           {/* --- Left Column: Profile Info --- */}
           <div className="lg:col-span-5 space-y-8 flex justify-center items-center flex-col">
             <div className="relative group w-fit">
@@ -126,25 +119,14 @@ function SelectedUserProfile() {
                 <motion.h1
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="text-4xl md:text-5xl font-bold tracking-tight text-white"
+                  className="text-4xl md:text-[40px] mb-3 font-bold tracking-tight text-white"
                 >
                   {selectedUser.fullName}
                 </motion.h1>
                 <div className="flex flex-row justify-between items-center gap-4 ">
-                  {/* <p className="text-cyan-400 font-medium mt-3 flex items-center gap-2">
+                  <p className="text-cyan-400 font-medium mb-3 flex items-center gap-2">
                     <Sparkles size={16} /> Verified Member
-                  </p> */}
-
-                  <button
-                    onClick={() => handleMessage(selectedUser._id)}
-                    className="flex items-center gap-2 px-6 py-2 rounded-xl mt-5
-               bg-cyan-500/10 border border-cyan-500/30 cursor-pointer
-               text-cyan-400 hover:bg-cyan-500/20
-               transition-all duration-300"
-                  >
-                    <MessageCircle size={18} />
-                    <span className="font-medium">Message</span>
-                  </button>
+                  </p>
                 </div>
               </div>
 
@@ -227,7 +209,7 @@ function SelectedUserProfile() {
           </div>
 
           {/* --- Right Column: Gallery --- */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 mt-10">
             <div className="flex items-center justify-between mb-8">
               <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">
                 Visual Gallery
@@ -236,12 +218,12 @@ function SelectedUserProfile() {
             </div>
 
             {selectedUser.gallery?.length > 0 ? (
-              <div className="flex flex-wrap gap-6 md:ml-8 justify-center md:justify-start">
+              <div className="flex flex-wrap gap-6 justify-center md:justify-start">
                 {selectedUser.gallery.map((img) => (
                   <motion.div
                     key={img._id}
                     whileHover={{ y: -8 }}
-                    className="relative w-60 h-80 overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-xl cursor-pointer group"
+                    className="relative w-55 h-80 overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-xl cursor-pointer group"
                     onClick={() => openImageModal(img.url)}
                   >
                     <img
@@ -272,7 +254,7 @@ function SelectedUserProfile() {
             className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
             onClick={closeModal}
           >
-            <button className="absolute md:hidden top-20 right-5 text-white/50 hover:text-white transition-colors">
+            <button className="absolute top-5 right-0 p-1 bg-black/50 rounded-full text-white/50 hover:text-white transition-colors">
               <X size={32} />
             </button>
             <motion.img
@@ -289,4 +271,4 @@ function SelectedUserProfile() {
   );
 }
 
-export default SelectedUserProfile;
+export default SelectedUserChatProfile;

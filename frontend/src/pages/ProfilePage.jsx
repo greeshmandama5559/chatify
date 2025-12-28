@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  CameraIcon,
-  Pencil,
-  Check,
-  X,
-  Loader2,
-  Mail,
-} from "lucide-react";
+import { CameraIcon, Pencil, Check, X, Loader2, Mail } from "lucide-react";
 import SideNavBar from "../components/SideNavBar";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
 import ActiveStatusSection from "../components/profile-components/ActiveStatusSection";
 import AccountInfoSection from "../components/profile-components/AccountInfoSection";
 import StatusPrivacySection from "../components/profile-components/StatusPrivacySection";
+import ImageArea from "../components/profile-components/ImageArea";
+import ProfileLikes from "../components/profile-components/ProfileLikes";
+import { useProfileStore } from "../store/useProfileStore";
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
 
 function ProfilePage() {
-  const { authUser, updateProfilePic, updateProfileName, logout } = useAuthStore();
+  const { authUser, updateProfilePic, updateProfileName, logout } =
+    useAuthStore();
+
+  const { likedUsers } = useProfileStore();
 
   const fileInputRef = useRef(null);
   const nameInputRef = useRef(null);
@@ -32,6 +33,10 @@ function ProfilePage() {
   const [originalInterests, setOriginalInterests] = useState(
     authUser?.interests || []
   );
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalSrc, setModalSrc] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setEditingName(authUser?.fullName || "");
@@ -71,6 +76,17 @@ function ProfilePage() {
     };
   };
 
+  const openImageModal = (src) => {
+    if (!src) return;
+    setModalSrc(src);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalSrc(null);
+  };
+
   const saveName = async () => {
     const trimmed = editingName.trim();
     if (trimmed.length < 2) {
@@ -85,10 +101,13 @@ function ProfilePage() {
     setIsSaving(true);
     try {
       await updateProfileName({ fullName: trimmed });
-      toast.success("Name updated");
       setIsEditing(false);
-    } catch {
-      toast.error("Failed to update name");
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        toast.error(error?.response?.data?.message);
+      } else {
+        toast.error("Failed to update name");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -153,6 +172,7 @@ function ProfilePage() {
                       ref={nameInputRef}
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveName()}
                       className="w-full bg-slate-800/50 border border-cyan-500/50 rounded-lg px-4 py-2 text-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                     />
                     <button
@@ -183,14 +203,14 @@ function ProfilePage() {
                   {authUser?.Email || "user@example.com"}
                 </p>
               </div>
-              <p className="text-md text-slate-400 mt-2">
-                Your profile have {authUser.likesCount} likes
-              </p>
+
+              <ProfileLikes authUser={authUser} likedUsers={likedUsers} />
             </div>
           </section>
 
           {/* ACCOUNT SETTINGS & STATS GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> */}
+          <div className="flex flex-col gap-6">
             {/* Status & Privacy Section */}
             <StatusPrivacySection
               bio={bio}
@@ -201,19 +221,53 @@ function ProfilePage() {
               setOriginalInterests={setOriginalInterests}
             />
 
-            {/* Account Information Section */}
-            <AccountInfoSection authUser={authUser} logout={logout} />
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Account Information Section */}
+              <div className="flex-1 gap">
+              <AccountInfoSection authUser={authUser} logout={logout} />
+              </div>
 
-            {/* Account status Section */}
-            <ActiveStatusSection
-              isActive={isActive}
-              setIsActive={setIsActive}
-            />
+              {/* Account status Section */}
+              <ActiveStatusSection
+                isActive={isActive}
+                setIsActive={setIsActive}
+              />
+            </div>
           </div>
 
-          <section className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
-          </section>
+          <ImageArea
+            modalOpen={modalOpen}
+            openImageModal={openImageModal}
+            setIsDeleting={setIsDeleting}
+          />
 
+          <AnimatePresence>
+            {modalOpen && modalSrc && !isDeleting && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 p-4 md:p-10 backdrop-blur-md"
+                onClick={closeModal}
+              >
+                <button
+                  className="absolute md:hidden top-20 right-5 text-white/60 hover:text-white transition-colors z-110"
+                  onClick={closeModal}
+                >
+                  <X size={36} />
+                </button>
+
+                <motion.img
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  src={modalSrc}
+                  className="max-w-70 max-h-[85vh] md:max-w-full md:max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
     </div>

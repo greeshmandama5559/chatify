@@ -17,6 +17,7 @@ import {
   updateIntrests,
   updateActiveState,
   getUserById,
+  getSimilarInterestUsers,
 } from "../controller/auth.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
@@ -70,6 +71,8 @@ route.put("/update-intrests", protectedRoute, updateIntrests);
 route.put("/update-active-status", protectedRoute ,updateActiveState);
 
 route.get("/stream-token", protectedRoute, getStreamToken);
+
+route.get("/similar-interests", protectedRoute, getSimilarInterestUsers);
 
 route.get("/check", protectedRoute, (req, res) => {
   return res.status(200).json(req.user);

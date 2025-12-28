@@ -7,7 +7,7 @@ import ContactList from "../components/ContactList";
 import ChatContainer from "../components/ChatContainer";
 import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
 import SideNavBar from "../components/SideNavBar";
-import SelectedUserProfile from "./SelectedUserProfile";
+import SelectedUserChatProfile from "../components/SelectedUserChatProfile";
 
 function ChatPage() {
   const { activeTab, selectedUser } = useChatStore();
@@ -22,7 +22,7 @@ function ChatPage() {
         {/* - On mobile: hidden when a chat is open (selectedUser exists). 
             - On md+: always visible. */}
         <div
-          className={`w-full min-h-0 md:w-90 h-full bg-slate-800 backdrop-blur-sm flex flex-col md:rounded-l-2xl
+          className={`w-full min-h-0 md:w-95 h-full bg-slate-800 backdrop-blur-sm flex flex-col md:rounded-l-2xl
             ${selectedUser ? "hidden md:flex" : "flex"}`}
         >
           <ProfileHeader />
@@ -41,7 +41,7 @@ function ChatPage() {
         >
           {/* Chat content or placeholder */}
           {selectedUser && isVisitingProfile ? (
-            <SelectedUserProfile />
+            <SelectedUserChatProfile />
           ) : selectedUser ? (
             <ChatContainer />
           ) : (

@@ -66,7 +66,9 @@ const SideNavBar = () => {
       {/* ===== DESKTOP LEFT SIDEBAR ===== */}
       <aside className="hidden md:flex fixed top-0 left-0 h-screen w-20 bg-black/40 backdrop-blur-2xl border-r border-white/10 flex-col items-center py-6 gap-4 z-50">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive =
+            location.pathname === item.path ||
+            location.pathname.startsWith(item.path + "/");
           const Icon = item.icon;
 
           return (

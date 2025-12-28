@@ -36,6 +36,7 @@ export const useChatStore = create((set, get) => ({
   activeTab: "chats",
   selectedUser: null,
   isUsersLoading: false,
+  isUserLoading: false,
   isMessagesLoading: false,
   messagesCache: {},
   persistedMessagesEnabled: true,
@@ -48,6 +49,8 @@ export const useChatStore = create((set, get) => ({
   typingStatuses: {}, // { [userId]: boolean }
   socketSubscribed: false,
   socketHandlers: {},
+  FIVE_DAYS: 5 * 24 * 60 * 60 * 1000,
+  TopLikedUsers: [],
 
   toggleSound: () => {
     localStorage.setItem("isSoundEnabled", !get().isSoundEnabled);
@@ -68,6 +71,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   fetchUserById: async (userId) => {
+    set({ isUserLoading: true });
     try {
       const res = await axiosInstance.get(`auth/find-user/${userId}`);
 
@@ -77,6 +81,8 @@ export const useChatStore = create((set, get) => ({
     } catch (error) {
       console.log("error in fetch user: ", error?.response?.data?.message);
       toast.error("something when wrong");
+    } finally {
+      set({ isUserLoading: false });
     }
   },
 
@@ -105,7 +111,34 @@ export const useChatStore = create((set, get) => ({
     set({ isUsersLoading: true });
     try {
       const res = await axiosInstance.get("/messages/contacts");
-      set({ allContacts: res.data });
+
+      const now = Date.now();
+
+      const contactsWithNewFlag = res.data.usersData.map((contact) => {
+        const createdTime = new Date(contact.createdAt).getTime();
+
+        console.log(contact.createdAt, "creataed");
+
+        return {
+          ...contact,
+          isNew: now - createdTime <= get().FIVE_DAYS,
+        };
+      });
+      set({ allContacts: contactsWithNewFlag });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to load contacts");
+    } finally {
+      set({ isUsersLoading: false });
+    }
+  },
+
+  getTrendingUsers: async () => {
+    set({ isUsersLoading: true });
+    try {
+      const res = await axiosInstance.get("/messages/trending-users");
+
+      set({ TopLikedUsers: res.data.trendingUsers });
+
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to load contacts");
     } finally {
@@ -176,7 +209,7 @@ export const useChatStore = create((set, get) => ({
 
       set({ chats: normalized });
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to load chats");
+      toast.error(error?.response?.data?.message);
     } finally {
       set({ isUsersLoading: false });
     }

@@ -17,7 +17,7 @@ function ProfileHeader() {
 
   const fileInputRef = useRef(null);
 
-  const profilePic = authUser.profilePic;
+  const profilePic = authUser?.profilePic;
 
   return (
     <div className="p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur-lg">
@@ -47,7 +47,7 @@ function ProfileHeader() {
           <div>
             <div className="group flex items-center gap-2">
               <>
-                <h3 className="text-slate-100 font-semibold text-base max-w-[160px] truncate tracking-wide">
+                <h3 className="text-slate-100 font-semibold text-base max-w-40 truncate tracking-wide">
                   {authUser?.fullName || "Unnamed User"}
                 </h3>
               </>

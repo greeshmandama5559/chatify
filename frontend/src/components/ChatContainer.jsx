@@ -208,7 +208,7 @@ function ChatContainer() {
         ) : messages.length > 0 ? (
           <div className="flex flex-col space-y-3 mt-2">
             {messages.map((msg, idx) => {
-              const isMine = msg.senderId === authUser._id;
+              const isMine = msg.senderId === authUser?._id;
               const profilePic = isMine
                 ? authUser.profilePic || "/avatar.png"
                 : selectedUser?.profilePic || "/avatar.png";
@@ -233,7 +233,7 @@ function ChatContainer() {
                 >
                   {/* Avatar Bubble */}
                   <div
-                    className="flex-shrink-0"
+                    className="shrink-0"
                     style={
                       isLast && partnerIsTyping
                         ? { transform: "translateY(-20px)" }
@@ -278,7 +278,7 @@ function ChatContainer() {
                     className={`relative max-w-[80%] px-3 py-2 shadow-lg transition-transform duration-200 mb-2 group flex items-center flex-col
                       ${
                         isMine
-                          ? "bg-gradient-to-br from-cyan-600 to-cyan-700 text-white rounded-2xl rounded-br-sm shadow-cyan-900/20"
+                          ? "bg-linear-to-br from-cyan-600 to-cyan-700 text-white rounded-2xl rounded-br-sm shadow-cyan-900/20"
                           : "bg-slate-800/90 backdrop-blur-sm text-slate-100 border border-slate-700/50 rounded-2xl rounded-bl-sm shadow-black/10"
                       }
                     `}
@@ -317,7 +317,7 @@ function ChatContainer() {
 
                         {/* Text Content (prefer plainText only) */}
                         {plainText && (
-                          <p className="text-sm leading-tight tracking-wide break-words">
+                          <p className="text-sm leading-tight tracking-wide wrap-break-word">
                             {LinkifyText(plainText)}
                           </p>
                         )}

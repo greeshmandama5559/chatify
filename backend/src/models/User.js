@@ -45,6 +45,18 @@ const userSchema = new mongoose.Schema(
       },
     },
 
+    gallery: {
+      type: [
+        {
+          url: { type: String, required: true },
+          publicId: { type: String },
+          uploadedAt: { type: Date, default: Date.now },
+        },
+      ],
+      validate: [arrayLimit, "{PATH} exceeds the limit of 4"],
+      default: [],
+    },
+
     googleId: {
       type: String,
       unique: true,
@@ -66,9 +78,19 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
 
+    likes: {
+      type: [
+        {
+          userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          likedAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
+
     hasNewNotification: {
       type: Boolean,
-      default: false
+      default: false,
     },
 
     resetPasswordToken: String,
@@ -79,5 +101,9 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+function arrayLimit(val) {
+  return val.length <= 4;
+}
 
 export default mongoose.model("User", userSchema);

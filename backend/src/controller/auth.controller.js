@@ -420,7 +420,6 @@ export const updateProfile = async (req, res) => {
 
     const userId = req.user._id;
 
-    // cloudinary should be the cloudinary instance exported from lib/cloudinary.js
     const uploadResponse = await cloudinary.uploader.upload(profilePic);
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -445,13 +444,26 @@ export const updateProfileName = async (req, res) => {
 
     const userId = req.user._id;
 
-    const updatedUser = await User.findByIdAndUpdate(
+    const userExists = await User.findOne({
+      fullName: fullName,
+      _id: { $ne: userId },
+    });
+
+    if (userExists) {
+      console.log("userExists: ", userExists);
+      return res.status(400).json({ message: "UserName already exists" });
+    }
+
+    await User.findByIdAndUpdate(
       userId,
       { fullName: fullName },
       { new: true }
     );
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({
+      success: true,
+      fullName,
+    });
   } catch (error) {
     console.error("error in updating profile: ", error);
     if (!res.headersSent) {
@@ -590,5 +602,70 @@ export const getUserById = async (req, res) => {
   } catch (error) {
     console.log("error in get user by id: ", error);
     res.status(500).json({ message: "internal server error" });
+  }
+};
+
+export const getSimilarInterestUsers = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const currentUser = await User.findById(userId).select("interests");
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!currentUser.interests.length) {
+      return res.status(200).json([]);
+    }
+
+    const similarUsers = await User.aggregate([
+      { $match: { _id: { $ne: userId } } },
+
+      {
+        $addFields: {
+          commonInterests: {
+            $size: {
+              $setIntersection: ["$interests", currentUser.interests],
+            },
+          },
+          totalUniqueInterests: {
+            $size: {
+              $setUnion: ["$interests", currentUser.interests],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          matchPercentage: {
+            $round: [
+              {
+                $multiply: [
+                  {
+                    $cond: [
+                      { $gt: ["$totalUniqueInterests", 0] },
+                      {
+                        $divide: ["$commonInterests", "$totalUniqueInterests"],
+                      },
+                      0,
+                    ],
+                  },
+                  100,
+                ],
+              },
+              0,
+            ],
+          },
+        },
+      },
+
+      { $match: { commonInterests: { $gt: 0 } } },
+      { $sort: { matchPercentage: -1 } },
+    ]);
+
+    res.status(200).json(similarUsers);
+  } catch (error) {
+    console.error("Similar interests error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

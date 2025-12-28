@@ -17,7 +17,8 @@ import DiscoverPage from "./pages/DiscoverPage";
 import { useProfileStore } from "./store/useProfileStore";
 import NotificationPage from "./pages/NotificationPage";
 import SelectedUserProfile from "./pages/SelectedUserProfile";
-import DiscoverPageLoadingSkeleton from "./components/DiscoverPageLoadingSkeleton";
+import SimilarInteretsPage from "./pages/SimilarInteretsPage";
+import ScrollToTop from "./components/ScrollToTop";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -45,7 +46,8 @@ const RedirectAuthenticatedUser = ({ children }) => {
 };
 
 function App() {
-  const { checkAuth, isCheckingAuth } = useAuthStore();
+  const { checkAuth, isCheckingAuth, authUser, isAuthenticated } =
+    useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -98,20 +100,81 @@ function App() {
   }, [socket, subscribeToLike]);
 
   useEffect(() => {
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
     if (selectedUser?._id) {
       likeCheck(selectedUser?._id);
     }
-  }, [likeCheck, selectedUser?._id]);
+  }, [authUser?.isVerified, isAuthenticated, likeCheck, selectedUser?._id]);
 
-  const { getMyChatPartners,hydrateFromServer } = useChatStore();
+  const { getMyChatPartners, hydrateFromServer } = useChatStore();
 
   useEffect(() => {
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
     const hydrate = async () => {
       await getMyChatPartners();
       await hydrateFromServer();
     };
+
     hydrate();
-  }, [getMyChatPartners, hydrateFromServer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authUser?.isVerified]);
+
+  const { getMyLikes, getMyLikesForNotification } = useProfileStore();
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
+    getMyLikes();
+  }, [authUser?.isVerified, getMyLikes, isAuthenticated]);
+
+  const { getAllContacts, getTrendingUsers } = useChatStore();
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
+    if (authUser?.likesCount !== undefined) {
+      getMyLikesForNotification();
+    }
+    getTrendingUsers();
+  }, [
+    authUser?.isVerified,
+    authUser?.likesCount,
+    getMyLikesForNotification,
+    getTrendingUsers,
+    isAuthenticated,
+  ]);
+
+  const { getSimilarInterestUsers } = useAuthStore();
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
+    getSimilarInterestUsers();
+  }, [
+    authUser?.isVerified,
+    authUser?.interests,
+    getSimilarInterestUsers,
+    isAuthenticated,
+  ]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
+    getAllContacts();
+  }, [authUser?.isVerified, getAllContacts, isAuthenticated]);
+
+  // useEffect(() => {
+  //   if (!isAuthenticated || !authUser?.isVerified) return;
+
+  //   getTrendingUsers();
+  // }, [
+  //   getTrendingUsers,
+  //   authUser?.isVerified,
+  //   isAuthenticated,
+  //   authUser?.likesCount,
+  // ]);
 
   if (isCheckingAuth) return <PageLoader />;
 
@@ -121,6 +184,8 @@ function App() {
       {/* <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" /> */}
       <div className="absolute top-0 -left-4 size-96 bg-pink-500 opacity-20 blur-[100px]" />
       <div className="absolute bottom-0 -right-4 size-96 bg-cyan-500 opacity-20 blur-[100px]" />
+
+      <ScrollToTop />
 
       <Routes>
         <Route
@@ -148,6 +213,15 @@ function App() {
           element={
             <ProtectedLogRoute>
               <DiscoverPage />
+            </ProtectedLogRoute>
+          }
+        />
+
+        <Route
+          path="/similar-interests"
+          element={
+            <ProtectedLogRoute>
+              <SimilarInteretsPage />
             </ProtectedLogRoute>
           }
         />
