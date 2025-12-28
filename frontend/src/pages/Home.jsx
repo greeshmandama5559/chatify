@@ -8,7 +8,8 @@ import {
   Video,
   Send,
   Users,
-  Music,
+  Play,
+  MousePointer2,
   Camera,
   MessageCircle,
   Loader,
@@ -23,6 +24,7 @@ import { motion } from "framer-motion";
 import SideNavBar from "../components/SideNavBar";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
+import CompleteProfileCTA from "../components/CompleteProfile";
 
 // Register GSAP Plugins
 gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
@@ -74,6 +76,13 @@ const Home = () => {
   const { authUser, isAuthenticated } = useAuthStore();
   const userAuthenticated = isAuthenticated && authUser?.isVerified;
 
+  console.log(
+    "bio: ",
+    !authUser?.bio,
+    "interests: ",
+    !authUser?.interests?.length
+  );
+
   // Smooth Scroll Handler
   const handleNavClick = (id) => {
     gsap.to(window, {
@@ -100,9 +109,9 @@ const Home = () => {
           trigger: "#about",
           start: "top 80%",
         },
-        x: -100,
+        x: -200,
         opacity: 0,
-        duration: 1,
+        duration: 1.5,
         ease: "power2.out",
       });
 
@@ -127,6 +136,19 @@ const Home = () => {
     toast.success("Thank you for responding");
   }
 
+  const calculateProfileCompletion = (user) => {
+    let completion = 35;
+
+    if (user?.profilePic) completion += 20;
+    if (user?.bio) completion += 10;
+    if (user?.interests?.length > 0) completion += 15;
+    if (user?.gallery?.length > 0) completion += 20;
+
+    return Math.min(completion, 100);
+  };
+
+  const completion = calculateProfileCompletion(authUser);
+
   return (
     <div
       ref={containerRef}
@@ -147,9 +169,11 @@ const Home = () => {
               <Sparkles size={18} />
             </div>
           </Link>
-          <h1 className="hidden md:block text-xl font-bold tracking-tighter">
-            ConvoX
-          </h1>
+          {isAuthenticated && (
+            <h1 className=" md:block text-xl font-bold tracking-tighter">
+              ConvoX
+            </h1>
+          )}
         </div>
 
         <div className="hidden md:flex gap-8 text-sm font-medium text-slate-400">
@@ -245,7 +269,7 @@ const Home = () => {
           </motion.div>
 
           {/* 3. Main Text */}
-          <h2 className="hero-text text-4xl md:text-9xl font-black tracking-tighter leading-[0.9]">
+          <h2 className="hero-text text-4xl md:text-8xl font-black tracking-tighter leading-[0.9]">
             BEYOND <br />
             <span className="bg-linear-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               CONVERSATION.
@@ -271,32 +295,12 @@ const Home = () => {
             </button>
           </div> */}
 
-          {/* 5. Social Proof */}
-          {/* <div className="hero-text mt-12 flex flex-col items-center gap-3">
-            <div className="flex -space-x-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="w-10 h-10 rounded-full border-2 border-[#050505] bg-slate-800 overflow-hidden"
-                >
-                  <img
-                    src={`https://i.pravatar.cc/100?img=${i + 10}`}
-                    alt="user"
-                  />
-                </div>
-              ))}
-              <div className="w-10 h-10 rounded-full border-2 border-[#050505] bg-cyan-600 flex items-center justify-center text-[10px] font-bold">
-                +2k
-              </div>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Joined by 10,000+ souls worldwide
-            </p>
-          </div> */}
-
           {/* Background Pulsing Orb */}
           <div className="absolute -z-10 w-[600px] h-[600px] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse" />
         </section>
+
+        {userAuthenticated && completion !== 100 && <CompleteProfileCTA completion={completion} profilePic={authUser?.profilePic} />}
+
         {/* FEATURES SECTION */}
         <section id="features" className="py-20">
           <div className="text-center mb-16">
@@ -329,10 +333,11 @@ const Home = () => {
             ))}
           </div>
         </section>
+
         {/* ABOUT SECTION */}
         <section
           id="about"
-          className="py-32 flex flex-col md:flex-row items-center gap-16"
+          className="py-32 ml-3 flex flex-col md:flex-row items-center gap-16"
         >
           <div className="about-content flex-1">
             <h2 className="text-4xl md:text-6xl font-black mb-6">
@@ -356,10 +361,10 @@ const Home = () => {
               </div>
             </div>
           </div>
-          <div className="flex-1 w-full aspect-video bg-linear-to-br from-cyan-500/20 to-blue-500/20 rounded-3xl border border-white/10 flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+          <div className="w-full md:w-1/2 md:flex items-center justify-center p-0 md:p-10">
+            {/* <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div> */}
             {/* <MessageSquare size={100} className="text-cyan-400/50" /> */}
-            <img src="/login.png" className="mt-3.5" alt="" />
+            <img src="/login.png" alt="" className="w-full h-auto" />
           </div>
         </section>
         {/* CONTACT SECTION */}

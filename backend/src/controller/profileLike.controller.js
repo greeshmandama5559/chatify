@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import ProfileLike from "../models/ProfileLike.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
+import cloudinaryImage from "../lib/cloudinaryImage.js";
 
 export const likeProfile = async (req, res) => {
   const likedUserId = req.params.userId;
@@ -21,6 +22,7 @@ export const likeProfile = async (req, res) => {
 
     await User.findByIdAndUpdate(likedUserId, {
       $inc: { likesCount: 1 },
+      $push: { likes: { userId: likedBy } },
       hasNewNotification: true,
     });
 
@@ -62,6 +64,7 @@ export const unlikeProfile = async (req, res) => {
 
     await User.findByIdAndUpdate(likedUserId, {
       $inc: { likesCount: -1 },
+      $pull: { likes: { userId: likedBy } },
       hasNewNotification: false,
     });
 
@@ -85,28 +88,26 @@ export const updatehasNewNotification = async (req, res) => {
     const { isSeen } = req.body;
     const authId = req.user._id;
 
-    if (!authId){
-      return res.status(400).json({messsage: "no auth id"});
+    if (!authId) {
+      return res.status(400).json({ messsage: "no auth id" });
     }
 
     const authUser = await User.findByIdAndUpdate(
       authId,
-      {hasNewNotification: isSeen},
-      {new: true},
+      { hasNewNotification: isSeen },
+      { new: true }
     );
 
-    if(!authUser){
-      return res.status(400).json({message: "no user found"});
+    if (!authUser) {
+      return res.status(400).json({ message: "no user found" });
     }
 
-    res.status(200).json({success: true});
-
-
+    res.status(200).json({ success: true });
   } catch (error) {
     console.log("error in update notification: ", error);
-    return res.status(500).json({message: "internal server errror"});
+    return res.status(500).json({ message: "internal server errror" });
   }
-}
+};
 
 export const getLikesCount = async (req, res) => {
   const user = await User.findById(req.params.userId).select("likesCount");
@@ -116,7 +117,7 @@ export const getLikesCount = async (req, res) => {
 export const getMyLikes = async (req, res) => {
   const likes = await ProfileLike.find({ likedUser: req.user._id }).populate(
     "likedBy",
-    " fullName profilePic isActive likesCount"
+    " fullName profilePic isActive likesCount gallery"
   );
 
   res.json(likes);
@@ -147,5 +148,82 @@ export const getUserByName = async (req, res) => {
   } catch (error) {
     console.error("error in get user by name:", error);
     res.status(500).json({ message: "internal server error" });
+  }
+};
+
+export const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Image required" });
+    }
+
+    const result = cloudinaryImage.uploader.upload_stream(
+      { folder: "user-gallery" },
+      async (error, result) => {
+        if (error) throw error;
+
+        const user = await User.findById(req.user._id);
+
+        if (user.gallery.length >= 4) {
+          return res.status(400).json({
+            message: "Max 4 images allowed",
+          });
+        }
+
+        user.gallery.push({
+          url: result.secure_url,
+          publicId: result.public_id,
+        });
+
+        await user.save();
+
+        res.json({
+          success: true,
+          gallery: user.gallery,
+        });
+      }
+    );
+
+    result.end(req.file.buffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Upload failed" });
+  }
+};
+
+export const deleteImage = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { imageId } = req.params;
+
+    // 1️⃣ Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2️⃣ Find image in gallery
+    const image = user.gallery.id(imageId);
+    if (!image) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    // 3️⃣ Delete from Cloudinary
+    if (image.publicId) {
+      await cloudinaryImage.uploader.destroy(image.publicId);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      $pull: { gallery: { _id: imageId } },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Image deleted successfully",
+      gallery: updatedUser.gallery,
+    });
+  } catch (error) {
+    console.error("Delete image error:", error);
+    res.status(500).json({ message: "Failed to delete image" });
   }
 };

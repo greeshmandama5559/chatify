@@ -39,7 +39,7 @@ function ChatsList() {
   // helper to normalise ids to strings for consistent lookup
   const toId = (v) => String(v ?? "");
 
-  const meId = toId(authUser._id);
+  const meId = toId(authUser?._id);
 
   const onlineSet = new Set(onlineUsers.map(toId));
 
@@ -48,7 +48,7 @@ function ChatsList() {
       {chats.filter(Boolean).map((chat) => {
         if (!chat || !chat._id) return null;
 
-        const chatId = toId(chat._id);
+        const chatId = toId(chat?._id);
         const isSelected = toId(selectedUser?._id) === chatId;
         const isOnline = onlineSet.has(chatId);
         const isMeSender = toId(chat.lastMessageSender) === meId;
@@ -125,7 +125,7 @@ function ChatsList() {
                 {/* Unseen badge */}
                 {hasUnseen && (
                   <div className="ml-2 flex items-center">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-500/95 text-black min-w-[20px] text-center">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-500/95 text-black min-w-5 text-center">
                       {unseenCountRaw > 9 ? "9+" : unseenCountRaw}
                     </span>
                   </div>
@@ -179,7 +179,7 @@ function ChatsList() {
                         {hasUnseen && (
                           <span
                             aria-hidden
-                            className="inline-block w-1 h-4 rounded-full bg-green-400 flex-shrink-0"
+                            className="inline-block w-1 h-4 rounded-full bg-green-400 shrink-0"
                           />
                         )}
                         <span className="truncate">{previewValue}</span>

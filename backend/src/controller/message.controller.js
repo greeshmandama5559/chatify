@@ -3,12 +3,82 @@ import { getReceiverSocketId, io } from "../lib/socket.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 
+export const getTrendingUsers = async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trendingUsers = await User.aggregate([
+      {
+        $match: {
+          isActive: true,
+        },
+      },
+      {
+        $addFields: {
+          recentLikes: {
+            $size: {
+              $filter: {
+                input: "$likes",
+                as: "like",
+                cond: { $gte: ["$$like.likedAt", sevenDaysAgo] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          recentLikes: { $gt: 0 },
+        },
+      },
+      {
+        $sort: {
+          recentLikes: -1,
+          createdAt: -1,
+        },
+      },
+      {
+        $limit: 3,
+      },
+      {
+        $project: {
+          Password: 0,
+          likes: 0,
+        },
+      },
+    ]);
+
+    const filteredTrendingUsers = trendingUsers.map((user) => ({
+      _id: user._id,
+      fullName: user.fullName,
+      bio: user.bio,
+      profilePic: user.profilePic,
+      interests: user.interests,
+      isActive: user.isActive,
+      likesCount: user.likesCount,
+      gallery: user.gallery,
+      createdAt: user.createdAt,
+    }));
+
+    res
+      .status(200)
+      .json({ trendingUsers: filteredTrendingUsers });
+
+  } catch (error) {
+    console.error("Error in get trending users: " + error);
+    res.status(500).json({ message: "internal server error" });
+  }
+};
+
 export const getAllContacts = async (req, res) => {
   try {
     const loggedUserId = req.user._id;
     const filteredUsers = await User.find({
       _id: { $ne: loggedUserId },
-    }).select("-Password");
+    })
+      .select("-password")
+      .sort({ createdAt: -1 });
 
     const usersData = filteredUsers.map((user) => ({
       _id: user._id,
@@ -18,9 +88,13 @@ export const getAllContacts = async (req, res) => {
       interests: user.interests,
       isActive: user.isActive,
       likesCount: user.likesCount,
+      gallery: user.gallery,
+      createdAt: user.createdAt,
     }));
 
-    res.status(200).json(usersData);
+    res
+      .status(200)
+      .json({ usersData: usersData });
   } catch (error) {
     console.error("Error in get all contacts: " + error);
     res.status(500).json({ message: "internal server error" });
@@ -81,7 +155,7 @@ export const sendMessage = async (req, res) => {
       image: imageUrl,
       type: type || undefined,
       url: url || undefined,
-      seen: false, 
+      seen: false,
     });
 
     await newMessage.save();

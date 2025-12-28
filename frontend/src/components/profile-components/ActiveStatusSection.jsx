@@ -20,7 +20,7 @@ function ActiveStatusSection({ isActive, setIsActive }) {
   };
 
   return (
-    <section className="bg-slate-900/50 backdrop-blur-xl border max-h-40 border-slate-800 rounded-3xl p-6">
+    <section className="bg-slate-900/50 backdrop-blur-xl border max-w-full md:w-90 h-40 border-slate-800 rounded-3xl p-6">
       <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
         <ActivitySquare size={16} /> Your Active Status
       </h3>

@@ -254,7 +254,7 @@ function LoginPage() {
               </div>
             )}
 
-            <div className="hidden md:w-1/2 md:flex items-center justify-center p-10 bg-gradient-to-bl from-slate-800/20 to-transparent">
+            <div className="hidden md:w-1/2 md:flex items-center justify-center p-10 bg-linear-to-bl from-slate-800/20 to-transparent">
               <div>
                 <img
                   src="/login.png"

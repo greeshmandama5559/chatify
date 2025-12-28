@@ -4,7 +4,7 @@ import styled from "styled-components";
 const PageLoader = () => {
   return (
     <StyledWrapper>
-      <div className="flex items-center justify-center w-full h-[100vh]">
+      <div className="flex items-center justify-center w-full h-screen">
         <div className="three-body">
           <div className="three-body__dot" />
           <div className="three-body__dot" />

@@ -1,11 +1,11 @@
-
-function DiscoverPageLoadingSkeleton({ size = 4 }) {
+function DiscoverPageLoadingSkeleton({ size = 3 }) {
   return (
     <div className="flex flex-wrap gap-x-10 pt-5 gap-y-16 ml-5">
+
       {Array.from({ length: size }).map((_, index) => (
         <div
           key={index}
-          className="relative mb-10 px-6 py-2 h-75 w-75 rounded-2xl flex flex-col items-center bg-slate-800/30 shadow-xl animate-pulse"
+          className="relative mb-10 px-6 py-2 h-85 w-85 rounded-2xl flex flex-col items-center bg-slate-800/30 shadow-xl animate-pulse"
         >
           <div className="w-24 h-24 rounded-full mt-5 bg-slate-700/70 overflow-hidden shadow-lg"></div>
 
