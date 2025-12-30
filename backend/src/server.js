@@ -28,15 +28,15 @@ app.use('/api/auth', authRouter);
 app.use('/api/messages', messageRouter);
 app.use('/api/profile', profile);
 
-const __dirname = path.resolve();
+// const __dirname = path.resolve();
 
-if (ENV.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// if (ENV.NODE_ENV === "production") {
+//   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  app.get("*", (_, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
-  });
-}
+//   app.get("*", (_, res) => {
+//     res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+//   });
+// }
 
 server.listen(PORT, () => {
     connectDB();
