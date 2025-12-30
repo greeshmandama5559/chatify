@@ -54,7 +54,7 @@ function ActiveTabSwitch() {
           {totalUnseen > 0 && (
             <span
               aria-hidden
-              className="absolute -top-1 -left-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-500/95 text-black min-w-[20px] flex items-center justify-center shadow-md"
+              className="absolute -top-1 -left-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/95 text-black min-w-5 flex items-center justify-center shadow-md"
             >
               {totalUnseen > 99 ? "99+" : totalUnseen}
             </span>

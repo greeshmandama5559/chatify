@@ -9,12 +9,15 @@ import toast from "react-hot-toast";
 import CallButton from "./CallButton";
 import { getStreamToken } from "../store/api";
 import { useProfileStore } from "../store/useProfileStore";
+import { useNavigate } from "react-router-dom";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 function ChatHeader() {
   const { selectedUser, setSelectedUser, sendMessage } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  const navigate = useNavigate();
 
   // eslint-disable-next-line no-unused-vars
   const { setIsVisitingProfile, likeCheck } = useProfileStore();
@@ -53,8 +56,6 @@ function ChatHeader() {
         // channelId is a simple string: "minId-maxId"
         const channelId = [authUser._id, targetUserId].sort().join("-");
 
-        console.log("Channel ID:", channelId);
-
         setChannel(channelId);
       } catch (error) {
         console.error("Error:", error);
@@ -82,7 +83,6 @@ function ChatHeader() {
     }
 
     const callUrl = `${import.meta.env.VITE_CLIENT_ORIGIN}/call/${channel}`;
-    console.log("Generated call URL:", callUrl);
 
     // Send plain text containing the url. LinkifyText in the message renderer
     // will convert the URL into a clickable link for both sender & receiver.
@@ -108,7 +108,10 @@ function ChatHeader() {
       <div className="flex items-center space-x-4 min-w-0">
         {/* BACK BUTTON (mobile only) */}
         <button
-          onClick={() => setSelectedUser(null)}
+          onClick={() => {
+            navigate(-1)
+            setSelectedUser(null)
+          }}
           className="md:hidden p-2 rounded-full hover:bg-slate-800/50 transition"
         >
           <ArrowLeft className="w-5 h-5 text-slate-200" />
@@ -163,7 +166,10 @@ function ChatHeader() {
         <CallButton handleVideoCall={handleVideoCall} disabled={!channel} />
 
         <button
-          onClick={() => setSelectedUser(null)}
+          onClick={() => {
+            navigate(-1);  
+            setSelectedUser(null);
+          }}
           className="hidden md:flex p-2 rounded-full bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-white transition-all duration-200"
           aria-label="Close chat"
         >

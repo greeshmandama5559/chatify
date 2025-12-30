@@ -28,7 +28,7 @@ function SimilarInterestsComponent() {
           )}
         </div>
 
-        {authUser.interests.length < 1 ? (
+        {authUser?.interests?.length < 1 ? (
           <AddInterestsCard />
         ) : (
           similarInteretsUsers.length < 1 && (

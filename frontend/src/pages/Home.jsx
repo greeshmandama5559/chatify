@@ -10,6 +10,7 @@ import {
   Users,
   Play,
   MousePointer2,
+  Target,
   Camera,
   MessageCircle,
   Loader,
@@ -41,9 +42,9 @@ const features = [
     icon: Shield,
   },
   {
-    title: "Instant Connect",
-    desc: "Break the ice instantly with our unique conversation starters.",
-    icon: Zap,
+    title: "Perfect Percentage",
+    desc: "Discover your perfect partner with AI-powered compatibility scores.",
+    icon: Target,
   },
   {
     title: "Build Real Bonds",
@@ -75,13 +76,6 @@ const Home = () => {
   const containerRef = useRef(null);
   const { authUser, isAuthenticated } = useAuthStore();
   const userAuthenticated = isAuthenticated && authUser?.isVerified;
-
-  console.log(
-    "bio: ",
-    !authUser?.bio,
-    "interests: ",
-    !authUser?.interests?.length
-  );
 
   // Smooth Scroll Handler
   const handleNavClick = (id) => {
@@ -299,7 +293,12 @@ const Home = () => {
           <div className="absolute -z-10 w-[600px] h-[600px] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse" />
         </section>
 
-        {userAuthenticated && completion !== 100 && <CompleteProfileCTA completion={completion} profilePic={authUser?.profilePic} />}
+        {userAuthenticated && completion !== 100 && (
+          <CompleteProfileCTA
+            completion={completion}
+            profilePic={authUser?.profilePic}
+          />
+        )}
 
         {/* FEATURES SECTION */}
         <section id="features" className="py-20">

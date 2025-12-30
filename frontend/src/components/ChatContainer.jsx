@@ -9,6 +9,7 @@ import { LoaderCircle, DownloadCloud, X, Trash2 } from "lucide-react";
 import ImageWithLoader from "./chat-container-components/ImageWithLoader";
 import LinkifyText from "./chat-container-components/LinkifyText";
 import VideoCallContainer from "./chat-container-components/VideoCallContainer";
+import SentSeen from "./SentSeen";
 
 function ChatContainer() {
   const {
@@ -18,8 +19,10 @@ function ChatContainer() {
     isMessagesLoading,
     typingStatuses,
     deleteMessage,
+    markChatAsSeen,
+    markMessagesAsSeenLocal,
   } = useChatStore();
-  const { authUser, socket, connectSocket } = useAuthStore();
+  const { authUser } = useAuthStore();
 
   const chatRef = useRef(null);
   const endRef = useRef(null);
@@ -60,11 +63,33 @@ function ChatContainer() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // useEffect(() => {
+  //   if (authUser && (!socket || !socket.connected)) {
+  //     connectSocket();
+  //   }
+  // }, [authUser, connectSocket, socket]);
+
+  const lastMessage = messages[messages?.length - 1];
+
+  const lastMessageIsMine = lastMessage?.senderId === authUser._id;
+
+  const lastSeenRef = useRef(null);
+
   useEffect(() => {
-    if (authUser && (!socket || !socket.connected)) {
-      connectSocket();
+    if (!selectedUser || !lastMessage) return;
+
+    if (lastSeenRef.current === lastMessage._id) return;
+
+    const isIncomingUnseen =
+      lastMessage.senderId === selectedUser._id && !lastMessage.seen;
+
+    if (isIncomingUnseen) {
+      lastSeenRef.current = lastMessage._id;
+      markChatAsSeen(selectedUser._id);
+      markMessagesAsSeenLocal(selectedUser._id);
     }
-  }, [authUser, connectSocket, socket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMessage?._id, selectedUser?._id]);
 
   useEffect(() => {
     useChatStore.getState().migrateDecryptCache();
@@ -112,7 +137,7 @@ function ChatContainer() {
     if (isAutoScrollRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages]);
 
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString([], {
@@ -363,6 +388,9 @@ function ChatContainer() {
               );
             })}
             <div ref={endRef} />
+            {lastMessageIsMine && selectedUser?.isSeenOn && authUser?.isSeenOn && (
+              <SentSeen seen={lastMessage?.seen} />
+            )}
           </div>
         ) : (
           <NoChatHistoryPlaceholder name={selectedUser?.fullName} />

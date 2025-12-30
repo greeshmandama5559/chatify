@@ -18,6 +18,7 @@ import {
   updateActiveState,
   getUserById,
   getSimilarInterestUsers,
+  updateSeenStatus,
 } from "../controller/auth.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
@@ -69,6 +70,8 @@ route.put("/update-bio", protectedRoute, updateBio);
 route.put("/update-intrests", protectedRoute, updateIntrests);
 
 route.put("/update-active-status", protectedRoute ,updateActiveState);
+
+route.put("/update-seen-status", protectedRoute ,updateSeenStatus);
 
 route.get("/stream-token", protectedRoute, getStreamToken);
 

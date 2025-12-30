@@ -17,7 +17,7 @@ function ChatPage() {
   return (
     // ensure it occupies the full viewport
     <div className="min-h-screen w-full bg-slate-900 md:pl-20 ">
-      <div className="flex flex-col md:flex-row h-screen pb-16 md:pb-0">
+      <div className="flex flex-col md:flex-row h-screen md:pb-0">
         {/* LEFT SIDE (Contacts/Chats) */}
         {/* - On mobile: hidden when a chat is open (selectedUser exists). 
             - On md+: always visible. */}

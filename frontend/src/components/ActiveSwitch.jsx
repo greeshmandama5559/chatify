@@ -4,115 +4,448 @@ import styled from "styled-components";
 const ActiveSwitch = ({ isActive, onToggle }) => {
   return (
     <StyledWrapper>
-      <div className="checkbox-wrapper-5">
-        <div className="check">
-          <input
-            id="check-5"
-            type="checkbox"
-            checked={isActive}
-            onChange={onToggle}
-          />
-          <label htmlFor="check-5" />
-        </div>
+      <div className="neo-toggle-container">
+        <input
+          className="neo-toggle-input"
+          id="neo-toggle"
+          type="checkbox"
+          checked={isActive}
+          onChange={onToggle}
+        />
+        <label className="neo-toggle" htmlFor="neo-toggle">
+          <div className="neo-track">
+            <div className="neo-background-layer" />
+            <div className="neo-grid-layer" />
+            <div className="neo-track-highlight" />
+          </div>
+          <div className="neo-thumb">
+            <div className="neo-thumb-ring" />
+            <div className="neo-thumb-core">
+              <div className="neo-thumb-icon">
+                <div className="neo-thumb-wave" />
+                <div className="neo-thumb-pulse" />
+              </div>
+            </div>
+          </div>
+          <div className="neo-gesture-area" />
+          <div className="neo-interaction-feedback">
+            <div className="neo-ripple" />
+            <div className="neo-progress-arc" />
+          </div>
+        </label>
       </div>
     </StyledWrapper>
   );
 };
 
 const StyledWrapper = styled.div`
-  .checkbox-wrapper-5 .check {
-    --size: 30px;
+  .neo-toggle-container {
+    --toggle-width: 70px;
+    --toggle-height: 34px;
+    --toggle-bg: #181c20;
+    --toggle-off-color: #475057;
+    --toggle-on-color: #36f9c7;
+    --toggle-transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+
     position: relative;
-    background: linear-gradient(90deg, #f19af3, #f099b5);
-    line-height: 0;
-    perspective: 400px;
-    font-size: var(--size);
+    display: inline-flex;
+    flex-direction: column;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    user-select: none;
   }
 
-  .checkbox-wrapper-5 .check input[type="checkbox"],
-  .checkbox-wrapper-5 .check label,
-  .checkbox-wrapper-5 .check label::before,
-  .checkbox-wrapper-5 .check label::after,
-  .checkbox-wrapper-5 .check {
-    appearance: none;
-    display: inline-block;
-    border-radius: var(--size);
-    border: 0;
-    transition: 0.35s ease-in-out;
-    box-sizing: border-box;
+  .neo-toggle-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .neo-toggle {
+    position: relative;
+    width: var(--toggle-width);
+    height: var(--toggle-height);
+    display: block;
     cursor: pointer;
+    transform: translateZ(0);
+    perspective: 500px;
   }
 
-  .checkbox-wrapper-5 .check label {
-    width: calc(2.2 * var(--size));
-    height: var(--size);
-    background: #d7d7d7;
-    overflow: hidden;
-  }
-
-  .checkbox-wrapper-5 .check input[type="checkbox"] {
+  /* Track styles */
+  .neo-track {
     position: absolute;
+    inset: 0;
+    border-radius: calc(var(--toggle-height) / 2);
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transform: translateZ(-1px);
+    transition: transform var(--toggle-transition);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .neo-background-layer {
+    position: absolute;
+    inset: 0;
+    background: var(--toggle-bg);
+    background-image: linear-gradient(
+      -45deg,
+      rgba(20, 20, 20, 0.8) 0%,
+      rgba(30, 30, 30, 0.3) 50%,
+      rgba(20, 20, 20, 0.8) 100%
+    );
+    opacity: 1;
+    transition: all var(--toggle-transition);
+  }
+
+  .neo-grid-layer {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+        to right,
+        rgba(71, 80, 87, 0.05) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, rgba(71, 80, 87, 0.05) 1px, transparent 1px);
+    background-size: 5px 5px;
+    opacity: 0;
+    transition: opacity var(--toggle-transition);
+  }
+
+  .neo-track-highlight {
+    position: absolute;
+    inset: 1px;
+    border-radius: calc(var(--toggle-height) / 2);
+    background: linear-gradient(90deg, transparent, rgba(54, 249, 199, 0));
+    opacity: 0;
+    transition: all var(--toggle-transition);
+  }
+
+  /* Spectrum analyzer */
+  .neo-spectrum-analyzer {
+    position: absolute;
+    bottom: 6px;
+    right: 10px;
+    height: 10px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity var(--toggle-transition);
+  }
+
+  .neo-spectrum-bar {
+    width: 2px;
+    height: 3px;
+    background-color: var(--toggle-on-color);
+    opacity: 0.8;
+  }
+
+  /* Thumb styles */
+  .neo-thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    transform-style: preserve-3d;
+    transition: transform var(--toggle-transition);
     z-index: 1;
-    width: calc(0.8 * var(--size));
-    height: calc(0.8 * var(--size));
-    top: calc(0.1 * var(--size));
-    left: calc(0.1 * var(--size));
-    background: linear-gradient(45deg, #dedede, #ffffff);
-    box-shadow: 0 6px 7px rgba(0, 0, 0, 0.3);
-    outline: none;
-    margin: 0;
   }
 
-  .checkbox-wrapper-5 .check input[type="checkbox"]:checked {
-    left: calc(1.3 * var(--size));
-  }
-
-  .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label {
-    background: transparent;
-  }
-
-  .checkbox-wrapper-5 .check label::before,
-  .checkbox-wrapper-5 .check label::after {
-    content: "· ·";
+  .neo-thumb-ring {
     position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--toggle-off-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: all var(--toggle-transition);
+  }
+
+  .neo-thumb-core {
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    transition: all var(--toggle-transition);
     overflow: hidden;
-    left: calc(0.15 * var(--size));
-    top: calc(0.5 * var(--size));
-    height: var(--size);
-    letter-spacing: calc(-0.04 * var(--size));
-    color: #9b9b9b;
-    font-family: "Times New Roman", serif;
-    z-index: 2;
-    font-size: calc(0.6 * var(--size));
-    border-radius: 0;
-    transform-origin: 0 0 calc(-0.5 * var(--size));
-    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .checkbox-wrapper-5 .check label::after {
-    content: "●";
-    top: calc(0.65 * var(--size));
-    left: calc(0.2 * var(--size));
-    height: calc(0.1 * var(--size));
-    width: calc(0.35 * var(--size));
-    font-size: calc(0.2 * var(--size));
-    transform-origin: 0 0 calc(-0.4 * var(--size));
+  .neo-thumb-icon {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    transition: all var(--toggle-transition);
   }
 
-  .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::before,
-  .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {
-    left: calc(1.55 * var(--size));
-    top: calc(0.4 * var(--size));
-    line-height: calc(0.1 * var(--size));
-    transform: rotateY(360deg);
+  .neo-thumb-wave {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 2px;
+    background: var(--toggle-off-color);
+    transform: translate(-50%, -50%);
+    transition: all var(--toggle-transition);
   }
 
-  .checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {
-    height: calc(0.16 * var(--size));
-    top: calc(0.55 * var(--size));
-    left: calc(1.6 * var(--size));
-    font-size: calc(0.6 * var(--size));
-    line-height: 0;
+  .neo-thumb-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid var(--toggle-off-color);
+    transform: scale(0);
+    opacity: 0;
+    transition: all var(--toggle-transition);
+  }
+
+  /* Gesture area */
+  .neo-gesture-area {
+    position: absolute;
+    inset: -10px;
+    z-index: 0;
+  }
+
+  /* Interaction feedback */
+  .neo-interaction-feedback {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .neo-ripple {
+    position: absolute;
+    top: 50%;
+    left: 30%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      var(--toggle-on-color) 0%,
+      transparent 70%
+    );
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: all 0.4s ease-out;
+  }
+
+  .neo-progress-arc {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--toggle-on-color);
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.5s ease;
+  }
+
+  /* Status indicator */
+  .neo-status {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .neo-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .neo-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--toggle-off-color);
+    transition: all var(--toggle-transition);
+  }
+
+  .neo-status-text {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--toggle-off-color);
+    letter-spacing: 1px;
+    transition: all var(--toggle-transition);
+  }
+
+  /* Value display */
+  .neo-value-display {
+    position: absolute;
+    top: -22px;
+    right: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--toggle-off-color);
+    opacity: 0;
+    transform: translateY(5px);
+    transition: all var(--toggle-transition);
+  }
+
+  .neo-value-text {
+    transition: all var(--toggle-transition);
+  }
+
+  /* Active states */
+
+  /* ON state */
+  .neo-toggle-input:checked + .neo-toggle .neo-thumb {
+    transform: translateX(calc(var(--toggle-width) - 38px));
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-thumb-ring {
+    background-color: var(--toggle-on-color);
+    border-color: rgba(54, 249, 199, 0.3);
+    box-shadow: 0 0 15px rgba(54, 249, 199, 0.5);
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-thumb-wave {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid #fff;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-thumb-pulse {
+    transform: scale(1.2);
+    opacity: 0.3;
+    animation: neo-pulse 1.5s infinite;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-track-highlight {
+    background: linear-gradient(90deg, transparent, rgba(54, 249, 199, 0.2));
+    opacity: 1;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-grid-layer {
+    opacity: 1;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-spectrum-analyzer {
+    opacity: 1;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-spectrum-bar:nth-child(1) {
+    animation: neo-spectrum 0.9s infinite;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-spectrum-bar:nth-child(2) {
+    animation: neo-spectrum 0.8s 0.1s infinite;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-spectrum-bar:nth-child(3) {
+    animation: neo-spectrum 1.1s 0.2s infinite;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-spectrum-bar:nth-child(4) {
+    animation: neo-spectrum 0.7s 0.1s infinite;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-spectrum-bar:nth-child(5) {
+    animation: neo-spectrum 0.9s 0.15s infinite;
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-status-dot {
+    background-color: var(--toggle-on-color);
+    box-shadow: 0 0 8px var(--toggle-on-color);
+  }
+
+  .neo-toggle-input:checked + .neo-toggle .neo-status-text {
+    color: var(--toggle-on-color);
+    content: "ACTIVE";
+  }
+
+  .neo-toggle-input:checked + .neo-toggle + .neo-value-display {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .neo-toggle-input:checked + .neo-toggle + .neo-value-display .neo-value-text {
+    color: var(--toggle-on-color);
+  }
+
+  /* Hover effects */
+  .neo-toggle:hover .neo-thumb-ring {
+    transform: scale(1.05);
+  }
+
+  .neo-toggle-input:not(:checked) + .neo-toggle:hover .neo-thumb-wave::before,
+  .neo-toggle-input:not(:checked) + .neo-toggle:hover .neo-thumb-wave::after {
+    opacity: 1;
+  }
+
+  /* Drag gesture handling */
+  .neo-toggle.neo-dragging .neo-track {
+    transform: translateZ(-1px) scale(1.02);
+  }
+
+  .neo-toggle.neo-dragging .neo-thumb {
+    transition: none;
+  }
+
+  /* Animations */
+  @keyframes neo-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.5);
+      opacity: 0.2;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes neo-spectrum {
+    0% {
+      height: 3px;
+    }
+    50% {
+      height: 8px;
+    }
+    100% {
+      height: 3px;
+    }
+  }
+
+  /* Custom script to enable advance features */
+  .neo-toggle.neo-activated .neo-ripple {
+    width: 100px;
+    height: 100px;
+    opacity: 0.5;
+    transition: all 0.6s ease-out;
+  }
+
+  .neo-toggle.neo-progress .neo-progress-arc {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1) rotate(270deg);
+    transition: opacity 0.3s ease, transform 1s ease;
+  }
+
+  /* Status text change */
+  .neo-toggle-input:checked + .neo-toggle .neo-status-text::before {
+    content: "ACTIVE";
+  }
+
+  .neo-toggle-input:not(:checked) + .neo-toggle .neo-status-text::before {
+    content: "INVISIBLE";
   }
 `;
 

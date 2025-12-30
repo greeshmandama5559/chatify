@@ -15,8 +15,6 @@ function ResetPasswordPage() {
   const { token } = useParams();
   const navigate = useNavigate();
 
-  console.log("token:", token);
-
   const validatePasswordStrength = (pw) => {
     if (pw.length < 6) return "Password must be at least 6 characters.";
     return "";

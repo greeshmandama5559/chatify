@@ -73,6 +73,11 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    isSeenOn: {
+      type: Boolean,
+      default: true,
+    },
+
     likesCount: {
       type: Number,
       default: 0,

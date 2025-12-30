@@ -10,11 +10,6 @@ export const getTrendingUsers = async (req, res) => {
 
     const trendingUsers = await User.aggregate([
       {
-        $match: {
-          isActive: true,
-        },
-      },
-      {
         $addFields: {
           recentLikes: {
             $size: {
@@ -56,6 +51,7 @@ export const getTrendingUsers = async (req, res) => {
       profilePic: user.profilePic,
       interests: user.interests,
       isActive: user.isActive,
+      isSeenOn: user.isSeenOn,
       likesCount: user.likesCount,
       gallery: user.gallery,
       createdAt: user.createdAt,
@@ -73,10 +69,11 @@ export const getTrendingUsers = async (req, res) => {
 
 export const getAllContacts = async (req, res) => {
   try {
-    const loggedUserId = req.user._id;
-    const filteredUsers = await User.find({
-      _id: { $ne: loggedUserId },
-    })
+    const loggedUserId = req?.user?._id;
+
+    const filteredUsers = await User.find(
+      loggedUserId ? { _id: { $ne: loggedUserId } } : {}
+    )
       .select("-password")
       .sort({ createdAt: -1 });
 
@@ -87,6 +84,7 @@ export const getAllContacts = async (req, res) => {
       profilePic: user.profilePic,
       interests: user.interests,
       isActive: user.isActive,
+      isSeenOn: user.isSeenOn,
       likesCount: user.likesCount,
       gallery: user.gallery,
       createdAt: user.createdAt,
@@ -137,7 +135,7 @@ export const sendMessage = async (req, res) => {
         .json({ message: "text, image or url is required" });
     }
 
-    const receiverExists = await User.exists({ _id: receiverId });
+    const receiverExists = await User.findById({ _id: receiverId });
     if (!receiverExists) {
       return res.status(400).json({ message: "receiver not exists." });
     }
@@ -179,7 +177,7 @@ export const sendMessage = async (req, res) => {
         .forEach((sid) =>
           io
             .to(sid)
-            .emit("newMessage", { ...payload, fullName: req.user.fullName })
+            .emit("newMessage", { ...payload, fullName: req.user.fullName, profilePic: req.user.profilePic })
         );
     }
 
@@ -188,7 +186,7 @@ export const sendMessage = async (req, res) => {
     if (senderSocketId) {
       []
         .concat(senderSocketId)
-        .forEach((sid) => io.to(sid).emit("newMessage", payload));
+        .forEach((sid) => io.to(sid).emit("newMessage", {...payload, profilePic: receiverExists.profilePic}));
     }
 
     res.status(201).json(payload);

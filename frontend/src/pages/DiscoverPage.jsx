@@ -9,7 +9,7 @@ import SimilarInterestsComponent from "../components/SimilarInterestsComponent";
 import TopLikedUsers from "../components/TopLikedUsers";
 
 function DiscoverPage() {
-  const { allContacts, setSelectedUser } = useChatStore();
+  const { allContacts, setSelectedUser, setProfileUser } = useChatStore();
 
   const { searchedUsers, query, searchUsersLoading } = useProfileStore();
 
@@ -45,7 +45,6 @@ function DiscoverPage() {
                 key={contact._id}
                 className="group relative bg-slate-900/50 border border-slate-800 rounded-4xl p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]"
               >
-                {console.log(contact.isNew, "is new")}
                 <div className="flex flex-col justify-center items-center">
                   {/* Avatar */}
                   <div className="relative">
@@ -85,7 +84,10 @@ function DiscoverPage() {
                   {/* Action Buttons */}
                   <div className=" flex w-full gap-3">
                     <button
-                      onClick={() => navigate(`/user-profile/${contact._id}`)}
+                      onClick={() => { 
+                        setProfileUser(contact);
+                        navigate(`/user-profile/${contact._id}`)
+                      }}
                       className="flex-1 px-4 py-2 text-sm font-semibold rounded-full border border-indigo-500/30 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-all"
                     >
                       View Profile

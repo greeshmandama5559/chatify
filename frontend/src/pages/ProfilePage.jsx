@@ -26,6 +26,7 @@ function ProfilePage() {
   const [editingName, setEditingName] = useState(authUser?.fullName || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(authUser?.isActive ?? true);
+  const [isSeenOn, setIsSeenOn] = useState(authUser?.isSeenOn ?? true);
 
   const [bio, setBio] = useState(authUser?.bio || "");
 
@@ -41,6 +42,7 @@ function ProfilePage() {
   useEffect(() => {
     setEditingName(authUser?.fullName || "");
     setIsActive(authUser?.isActive ?? true);
+    setIsSeenOn(authUser?.isSeenOn ?? true);
   }, [authUser]);
 
   useEffect(() => {
@@ -143,6 +145,11 @@ function ProfilePage() {
                 >
                   <CameraIcon size={18} className="text-cyan-400" />
                 </button>
+
+                <div className="absolute top-0 left-2 -rotate-40 opacity-90 rounded-full transition-all shadow-lg" >
+                  <img src="/ribbon.png" alt="" className="w-10 h-10" />
+                </div>
+
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -224,12 +231,14 @@ function ProfilePage() {
             <div className="flex flex-col md:flex-row gap-8">
               {/* Account Information Section */}
               <div className="flex-1 gap">
-              <AccountInfoSection authUser={authUser} logout={logout} />
+                <AccountInfoSection authUser={authUser} logout={logout} />
               </div>
 
               {/* Account status Section */}
               <ActiveStatusSection
                 isActive={isActive}
+                isSeenOn={isSeenOn}
+                setIsSeenOn={setIsSeenOn}
                 setIsActive={setIsActive}
               />
             </div>

@@ -51,6 +51,7 @@ export const useChatStore = create((set, get) => ({
   socketHandlers: {},
   FIVE_DAYS: 5 * 24 * 60 * 60 * 1000,
   TopLikedUsers: [],
+  selectedprofileUser: null,
 
   toggleSound: () => {
     localStorage.setItem("isSoundEnabled", !get().isSoundEnabled);
@@ -70,14 +71,17 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  setProfileUser: (user) => set({ selectedprofileUser: user }),
+
   fetchUserById: async (userId) => {
     set({ isUserLoading: true });
     try {
       const res = await axiosInstance.get(`auth/find-user/${userId}`);
-
       if (res?.data?.success) {
-        set({ selectedUser: res.data.selectedUser });
+        set({selectedprofileUser: res.data.selectedUser});
+        return res.data.selectedUser;
       }
+      return null;
     } catch (error) {
       console.log("error in fetch user: ", error?.response?.data?.message);
       toast.error("something when wrong");
@@ -116,8 +120,6 @@ export const useChatStore = create((set, get) => ({
 
       const contactsWithNewFlag = res.data.usersData.map((contact) => {
         const createdTime = new Date(contact.createdAt).getTime();
-
-        console.log(contact.createdAt, "creataed");
 
         return {
           ...contact,
@@ -175,7 +177,6 @@ export const useChatStore = create((set, get) => ({
                 : "";
             let pt = "";
             if (cipher) {
-              console.log("type:", chat.type, chat);
               if (chat.type !== "video_call" && chat.type !== "image") {
                 pt = await decrypt(cipher).catch((e) => {
                   console.warn("[chat store] decrypt chat preview failed", e);
@@ -204,8 +205,6 @@ export const useChatStore = create((set, get) => ({
           }
         })
       );
-
-      console.log("normalized: ", normalized);
 
       set({ chats: normalized });
     } catch (error) {
@@ -685,6 +684,26 @@ export const useChatStore = create((set, get) => ({
     });
   },
 
+  markMessagesAsSeenLocal: (partnerId) => {
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.senderId === partnerId && !msg.seen ? { ...msg, seen: true } : msg
+      ),
+    }));
+  },
+
+  markSentMessagesSeenLocal: (partnerId) => {
+    const myId = useAuthStore.getState().authUser?._id;
+
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.senderId === myId && msg.receiverId === partnerId && !msg.seen
+          ? { ...msg, seen: true }
+          : msg
+      ),
+    }));
+  },
+
   // --------------------- SOCKET MESSAGE LISTENER ---------------------
   subscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
@@ -706,7 +725,6 @@ export const useChatStore = create((set, get) => ({
     const onNewMessage = (incoming) => {
       (async () => {
         try {
-          console.log("[socket] newMessage received:", incoming);
 
           const newMessage = { ...incoming };
 
@@ -805,16 +823,7 @@ export const useChatStore = create((set, get) => ({
               }
             }
             try {
-              const res = await fetch(`/api/users/${id}`);
-              if (res.ok) {
-                const u = await res.json();
-                return {
-                  fullName:
-                    u.fullName ||
-                    `${u.firstName || ""} ${u.lastName || ""}`.trim(),
-                  profilePic: u.profilePic,
-                };
-              }
+              return await get().fetchUserById(id);
             } catch (e) {
               console.warn(
                 "[chat store] direct fetch user info failed for",
@@ -825,7 +834,7 @@ export const useChatStore = create((set, get) => ({
             return {
               fullName:
                 newMessage.senderName || newMessage.fullName || "Loading...",
-              profilePic: newMessage.senderProfilePic || "/avatar.png",
+              profilePic: newMessage.profilePic || "/avatar.png",
             };
           };
 
@@ -838,6 +847,7 @@ export const useChatStore = create((set, get) => ({
                 lastMessageText:
                   newMessage.plainText || (newMessage.image ? "📷 Image" : ""),
                 lastMessageSender: senderId,
+                profilePic: newMessage.profilePic,
                 lastMessageId: newMessage._id,
                 lastMessageTime: newMessage.createdAt,
                 plainText: newMessage.plainText ?? chat.plainText ?? "",
@@ -861,7 +871,7 @@ export const useChatStore = create((set, get) => ({
               _id: partnerId,
               fullName:
                 newMessage.senderName || newMessage.fullName || "Loading...",
-              profilePic: newMessage.senderProfilePic || "/avatar.png",
+              profilePic: newMessage.profilePic || "/avatar.png",
               lastMessageText:
                 newMessage.text ||
                 newMessage.plainText ||
@@ -951,6 +961,11 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", onNewMessage);
     socket.on("typing", onTyping);
 
+    socket.on("messagesSeen", ({ byUserId }) => {
+      get().markMessagesAsSeenLocal(byUserId);
+      get().markSentMessagesSeenLocal(byUserId);
+    });
+
     const onDeleteMessage = ({ messageId, partnerId, wasUnseen }) => {
       const chatId = normalizeId(partnerId);
 
@@ -1011,12 +1026,6 @@ export const useChatStore = create((set, get) => ({
     socket.off("deleteMessage", onDeleteMessage);
 
     socket.on("deleteMessage", onDeleteMessage);
-
-    socket.on("deleteMessage", (data) => {
-      console.log("DELETE EVENT", data);
-    });
-
-    console.log("[chat store] subscribed to socket events");
   },
 
   unSubscribeFromMessages: () => {
@@ -1031,7 +1040,6 @@ export const useChatStore = create((set, get) => ({
 
     // clear flag & handlers
     set({ socketSubscribed: false, socketHandlers: {} });
-    console.log("[chat store] unsubscribed from socket events");
   },
 
   loadMessageCacheFromStorage: () => {
