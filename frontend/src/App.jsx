@@ -20,7 +20,7 @@ import SelectedUserProfile from "./pages/SelectedUserProfile";
 import SimilarInteretsPage from "./pages/SimilarInteretsPage";
 import ScrollToTop from "./components/ScrollToTop";
 import DiscoverCreateAccount from "./components/DiscoverCreateAccount";
-import ChatCreateProfile from "./components/chatCreateProfile";
+import ChatCreateProfile from "./components/ChatCreateProfile";
 import ProfileCreateAccount from "./components/ProfileCreateAcount";
 
 const ProtectedRoute = ({ children }) => {
