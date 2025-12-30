@@ -128,7 +128,7 @@ function StatusPrivacySection({
             Interests & Vibes
           </span>
 
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-2 mb-4">
             <AnimatePresence>
               {interests.map((interest) => (
                 <motion.span

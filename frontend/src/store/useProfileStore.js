@@ -18,6 +18,7 @@ export const useProfileStore = create((set, get) => ({
   query: "",
   uploading: false,
   uploadProgress: 0,
+  likeLoading: false,
 
   setQuery: (que) => {
     set({ query: que });
@@ -53,7 +54,6 @@ export const useProfileStore = create((set, get) => ({
       }
       const res = await axiosInstance.get(`/profile/${userId}/check`);
       set({ hasLiked: res.data.hasLiked });
-      console.log("hasliked: ", get().hasLiked, ":  ", res.data.hasLiked);
     } catch (error) {
       console.log("error in like check:", error?.response?.data?.message);
     } finally {
@@ -68,14 +68,27 @@ export const useProfileStore = create((set, get) => ({
 
   likeProfile: async (userId) => {
     try {
-      set({ hasLiked: true });
+      set({ hasLiked: true, likeLoading: true });
 
-      useChatStore.setState((state) => ({
-        selectedUser: {
-          ...state.selectedUser,
-          likesCount: (state.selectedUser.likesCount || 0) + 1,
-        },
-      }));
+      useChatStore.setState((state) => {
+        const updates = {};
+
+        if (state.selectedprofileUser) {
+          updates.selectedprofileUser = {
+            ...state.selectedprofileUser,
+            likesCount: (state.selectedprofileUser.likesCount || 0) + 1,
+          };
+        }
+
+        if (state.selectedUser) {
+          updates.selectedUser = {
+            ...state.selectedUser,
+            likesCount: (state.selectedUser.likesCount || 0) + 1,
+          };
+        }
+
+        return updates;
+      });
 
       await axiosInstance.post(`/profile/${userId}/like`);
     } catch (error) {
@@ -83,26 +96,46 @@ export const useProfileStore = create((set, get) => ({
         "Error in like profile (frontend) : ",
         error?.response?.data?.message
       );
+    } finally {
+      set({ likeLoading: false });
     }
   },
 
   unlikeProfile: async (userId) => {
     try {
-      set({ hasLiked: false });
+      set({ hasLiked: false, likeLoading: true });
 
-      useChatStore.setState((state) => ({
-        selectedUser: {
-          ...state.selectedUser,
-          likesCount: Math.max((state.selectedUser.likesCount || 1) - 1, 0),
-        },
-      }));
+      useChatStore.setState((state) => {
+        const updates = {};
+
+        if (state.selectedprofileUser) {
+          updates.selectedprofileUser = {
+            ...state.selectedprofileUser,
+            likesCount: Math.max(
+              (state.selectedprofileUser.likesCount || 1) - 1,
+              0
+            ),
+          };
+        }
+
+        if (state.selectedUser) {
+          updates.selectedUser = {
+            ...state.selectedUser,
+            likesCount: Math.max((state.selectedUser.likesCount || 1) - 1, 0),
+          };
+        }
+
+        return updates;
+      });
 
       await axiosInstance.delete(`/profile/${userId}/unlike`);
     } catch (error) {
       console.log(
-        "Error in like profile (frontend) : ",
+        "Error in Unlike profile (frontend) : ",
         error?.response?.data?.message
       );
+    } finally {
+      set({ likeLoading: false });
     }
   },
 

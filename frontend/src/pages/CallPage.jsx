@@ -55,7 +55,6 @@ const CallPage = () => {
 
     const initcall = async () => {
       try {
-        console.log("Initializing Stream Video Client...");
 
         const user = {
           id: String(authUser._id),

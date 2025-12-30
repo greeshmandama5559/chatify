@@ -24,7 +24,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data, isAuthenticated: true });
-      if (!get().authUser || get().socket?.connected) return;
+      if (!get().authUser || get().socket) return;
       get().connectSocket();
     } catch (error) {
       console.log(
@@ -167,7 +167,6 @@ export const useAuthStore = create((set, get) => ({
 
   resetPassword: async (token, password) => {
     set({ isLoading: true });
-    console.log("token in reset auth: ", token);
     try {
       const res = await axiosInstance.post(`/auth/reset-password/${token}`, {
         Password: password,
@@ -267,6 +266,22 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  updateSeenStatus: async (isSeenOn) => {
+    try {
+      const res = await axiosInstance.put("/auth/update-seen-status", {
+        isSeenOn: isSeenOn.isSeenOn,
+      });
+      set((state) => ({
+        authUser: { ...state.authUser, isSeenOn: res.data.isSeenOn },
+      }));
+    } catch (error) {
+      console.log(
+        "Error in update status (frontend):",
+        error?.response?.data?.message
+      );
+    }
+  },
+
   updateBio: async (bio) => {
     try {
       const res = await axiosInstance.put("/auth/update-bio", {
@@ -306,24 +321,44 @@ export const useAuthStore = create((set, get) => ({
   },
 
   connectSocket: () => {
-    const { authUser } = get();
-    if (!authUser || get().socket?.connected) return;
+    const { authUser, socket: existingSocket } = get();
+
+    if (!authUser) return;
+
+    if (existingSocket?.connected) return;
 
     const socket = io(BASE_URL, {
-      withCredentials: true, // ensures cookies sent
+      withCredentials: true,
+      query: {
+        userId: authUser._id,
+      },
+      auth: {
+        userId: authUser._id,
+      },
     });
 
-    socket.connect();
-
-    set({ socket: socket });
+    socket.on("connect", () => {
+      console.log("Connected");
+    });
 
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+    });
+
+    set({ socket });
   },
 
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
+    const socket = get().socket;
+    if (socket) {
+      socket.off();
+      socket.disconnect();
+    }
+    set({ socket: null, onlineUsers: [] });
   },
 
   deleteUser: async (userId) => {
@@ -341,8 +376,6 @@ export const useAuthStore = create((set, get) => ({
   getSimilarInterestUsers: async () => {
     try {
       const res = await axiosInstance.get("/auth/similar-interests");
-
-      console.log("simila users: ", res.data);
 
       set({ similarInteretsUsers: res.data });
     } catch (error) {

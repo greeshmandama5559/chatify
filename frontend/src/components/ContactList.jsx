@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
+import { useNavigate } from "react-router-dom";
 
 function ContactList() {
   const {
@@ -13,6 +14,8 @@ function ContactList() {
   } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     getAllContacts();
@@ -31,11 +34,7 @@ function ContactList() {
             key={contact._id}
             onClick={() => {
               setSelectedUser(contact);
-              window.history.pushState(
-                { chat: contact._id },
-                "",
-                `#/chat/${contact._id}`
-              );
+              navigate(`/chats/${contact._id}`);
             }}
             className={`w-full p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group
               ${

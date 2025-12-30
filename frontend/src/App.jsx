@@ -19,6 +19,9 @@ import NotificationPage from "./pages/NotificationPage";
 import SelectedUserProfile from "./pages/SelectedUserProfile";
 import SimilarInteretsPage from "./pages/SimilarInteretsPage";
 import ScrollToTop from "./components/ScrollToTop";
+import DiscoverCreateAccount from "./components/DiscoverCreateAccount";
+import ChatCreateProfile from "./components/chatCreateProfile";
+import ProfileCreateAccount from "./components/ProfileCreateAcount";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -53,40 +56,24 @@ function App() {
     checkAuth();
   }, [checkAuth]);
 
-  useEffect(() => {
-    const setVh = () => {
-      document.documentElement.style.setProperty(
-        "--vh",
-        `${window.innerHeight * 0.01}px`
-      );
-    };
-
-    setVh();
-    window.addEventListener("resize", setVh);
-    return () => window.removeEventListener("resize", setVh);
-  }, []);
-
-  useEffect(() => {
-    const onBack = () => {
-      const { setSelectedUser } = useChatStore.getState();
-      setSelectedUser(null); // go back to chats
-    };
-
-    window.addEventListener("popstate", onBack);
-    return () => window.removeEventListener("popstate", onBack);
-  }, []);
-
   const socket = useAuthStore((s) => s.socket);
   const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isAuthenticated || !authUser?.isVerified) return;
+
     subscribeToMessages();
-  }, [socket, subscribeToMessages]);
+
+    return () => {
+      socket.off("newMessage");
+    };
+  }, [socket, isAuthenticated, authUser?.isVerified, subscribeToMessages]);
 
   const { subscribeToLike, likeCheck } = useProfileStore();
 
   const { selectedUser } = useChatStore();
+
+  const { getMyLikes, getMyLikesForNotification } = useProfileStore();
 
   useEffect(() => {
     if (!socket) return;
@@ -102,8 +89,10 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated || !authUser?.isVerified) return;
 
-    if (selectedUser?._id) {
-      likeCheck(selectedUser?._id);
+    const userId = selectedUser?._id
+
+    if (userId) {
+      likeCheck(userId);
     }
   }, [authUser?.isVerified, isAuthenticated, likeCheck, selectedUser?._id]);
 
@@ -118,10 +107,14 @@ function App() {
     };
 
     hydrate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, authUser?.isVerified]);
+  }, [
+    isAuthenticated,
+    authUser?.isVerified,
+    getMyChatPartners,
+    hydrateFromServer,
+  ]);
 
-  const { getMyLikes, getMyLikesForNotification } = useProfileStore();
+  
 
   useEffect(() => {
     if (!isAuthenticated || !authUser?.isVerified) return;
@@ -190,11 +183,7 @@ function App() {
       <Routes>
         <Route
           path="/chats"
-          element={
-            <ProtectedLogRoute>
-              <ChatPage />
-            </ProtectedLogRoute>
-          }
+          element={isAuthenticated ? <ChatPage /> : <ChatCreateProfile />}
         />
 
         <Route
@@ -211,9 +200,7 @@ function App() {
         <Route
           path="/discover"
           element={
-            <ProtectedLogRoute>
-              <DiscoverPage />
-            </ProtectedLogRoute>
+            isAuthenticated ? <DiscoverPage /> : <DiscoverCreateAccount />
           }
         />
 
@@ -246,11 +233,7 @@ function App() {
 
         <Route
           path="/profile"
-          element={
-            <ProtectedLogRoute>
-              <ProfilePage />
-            </ProtectedLogRoute>
-          }
+          element={isAuthenticated ? <ProfilePage /> : <ProfileCreateAccount />}
         />
 
         <Route path="/verify-email" element={<EmailVerification />} />

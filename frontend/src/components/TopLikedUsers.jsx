@@ -33,7 +33,7 @@ function TopLikedUsers() {
         ) : (
           <div
             className="
-            flex gap-18 px-4
+            flex gap-5 md:gap-18 px-4
             overflow-x-auto
             md:grid md:grid-cols-3 md:overflow-visible
             scrollbar-hide

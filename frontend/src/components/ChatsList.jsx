@@ -14,7 +14,7 @@ function ChatsList() {
     selectedUser,
     setSelectedUser,
     unseenCounts = {},
-    lastUnseenMessageId = {},
+    // lastUnseenMessageId = {},
     typingStatuses = {},
     // hydrateFromServer,
   } = useChatStore();
@@ -64,11 +64,10 @@ function ChatsList() {
             : Number(unseenCounts?.[chatId]) || 0;
         const hasUnseen = unseenCountRaw > 0;
 
-        const isLastUnseenForThisChat =
-          lastUnseenMessageId?.[chatId] &&
-          lastUnseenMessageId[chatId] === chat.lastMessageId;
+        // const isLastUnseenForThisChat =
+        //   lastUnseenMessageId?.[chatId] &&
+        //   lastUnseenMessageId[chatId] === chat.lastMessageId;
 
-        console.log("last message:", isLastUnseenForThisChat);
 
         // Prefer explicit plain text fields (store sets plainText). Fallback to lastMessageText.
         const previewValue =
@@ -125,7 +124,7 @@ function ChatsList() {
                 {/* Unseen badge */}
                 {hasUnseen && (
                   <div className="ml-2 flex items-center">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-500/95 text-black min-w-5 text-center">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/95 text-black min-w-5 text-center">
                       {unseenCountRaw > 9 ? "9+" : unseenCountRaw}
                     </span>
                   </div>
@@ -145,7 +144,7 @@ function ChatsList() {
                       isSelected
                         ? "text-cyan-400/80"
                         : hasUnseen
-                        ? "text-green-200 font-semibold"
+                        ? "text-cyan-200 font-semibold"
                         : "text-slate-400"
                     }`}
                   >
@@ -171,7 +170,7 @@ function ChatsList() {
                           isSelected
                             ? "text-cyan-400/80"
                             : hasUnseen
-                            ? "text-green-200 font-semibold"
+                            ? "text-cyan-200 font-semibold"
                             : "text-slate-400"
                         }`}
                       >
@@ -179,12 +178,12 @@ function ChatsList() {
                         {hasUnseen && (
                           <span
                             aria-hidden
-                            className="inline-block w-1 h-4 rounded-full bg-green-400 shrink-0"
+                            className="inline-block w-1 h-4 rounded-full bg-cyan-400 shrink-0"
                           />
                         )}
                         <span className="truncate">{previewValue}</span>
                         {hasUnseen && (
-                          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500 text-black">
+                          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500 text-black">
                             new
                           </span>
                         )}

@@ -454,11 +454,7 @@ export const updateProfileName = async (req, res) => {
       return res.status(400).json({ message: "UserName already exists" });
     }
 
-    await User.findByIdAndUpdate(
-      userId,
-      { fullName: fullName },
-      { new: true }
-    );
+    await User.findByIdAndUpdate(userId, { fullName: fullName }, { new: true });
 
     res.status(200).json({
       success: true,
@@ -491,6 +487,34 @@ export const updateActiveState = async (req, res) => {
     res.json({
       success: true,
       isActive: user.isActive,
+    });
+  } catch (error) {
+    console.log("error in active state (backend): ", error);
+    res
+      .status(500)
+      .json({ message: "error in active state (backend): ", error });
+  }
+};
+
+export const updateSeenStatus = async (req, res) => {
+  try {
+    const { isSeenOn } = req.body;
+
+    const userId = req.user._id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isSeenOn: isSeenOn },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      isSeenOn: user.isSeenOn,
     });
   } catch (error) {
     console.log("error in active state (backend): ", error);
@@ -590,7 +614,7 @@ export const getUserById = async (req, res) => {
       return res.status(400).json({ message: "no user id available" });
     }
 
-    const selectedUser = await User.findById(userId);
+    const selectedUser = await User.findById(userId).select("-Password");
     if (!selectedUser) {
       return res.status(400).json({ message: "user not found" });
     }

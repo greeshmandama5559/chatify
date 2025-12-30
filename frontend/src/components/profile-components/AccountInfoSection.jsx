@@ -1,8 +1,12 @@
 import { User, Calendar, ShieldCheck, LogOut, ArrowRight } from "lucide-react";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 function AccountInfoSection({ authUser, logout }) {
+
+  const navigate = useNavigate();
+
   return (
     <section className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-4xl p-7 shadow-2xl overflow-hidden relative">
       {/* Decorative Glow */}
@@ -67,7 +71,10 @@ function AccountInfoSection({ authUser, logout }) {
         <motion.button
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
-          onClick={logout}
+          onClick={() => {
+            navigate("/");
+            logout();
+          }}
           className="w-full mt-6 group relative flex items-center justify-center p-4 rounded-2xl bg-linear-to-r from-red-500/10 to-orange-500/5 border border-red-500/20 hover:border-red-500/40 transition-all overflow-hidden"
         >
           {/* Subtle button shine */}

@@ -56,6 +56,12 @@ io.on("connection", (socket) => {
         $set: { seen: true, seenAt: new Date() },
       }
     );
+
+    const partnerSocketId = getReceiverSocketId(partnerId);
+
+    io.to(partnerSocketId).emit("messagesSeen", {
+      byUserId: socket.userId,
+    });
   });
 
   socket.on("disconnect", () => {
