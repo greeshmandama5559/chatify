@@ -146,9 +146,9 @@ function ProfilePage() {
                   <CameraIcon size={18} className="text-cyan-400" />
                 </button>
 
-                <div className="absolute top-0 left-2 -rotate-40 opacity-90 rounded-full transition-all shadow-lg" >
+                {/* <div className="absolute top-0 left-2 -rotate-40 opacity-90 rounded-full transition-all shadow-lg" >
                   <img src="/ribbon.png" alt="" className="w-10 h-10" />
-                </div>
+                </div> */}
 
                 <input
                   type="file"

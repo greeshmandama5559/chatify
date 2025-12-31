@@ -3,8 +3,7 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL =
-  import.meta.env.MODE === "development" ? "http://localhost:3000/" : "/";
+const BASE_URL = `${import.meta.env.VITE_BACKEN_URL}/`;
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -29,7 +28,7 @@ export const useAuthStore = create((set, get) => ({
     } catch (error) {
       console.log(
         "Error in check Auth: ",
-        error?.response ?? error?.message ?? error
+        error?.response?.data?.message
       );
       set({ authUser: null });
     } finally {
