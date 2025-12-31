@@ -5,18 +5,21 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
 import EmptyNotifications from "../components/EmptyNotifications";
+import { useAuthStore } from "../store/useAuthStore";
 
 function NotificationPage() {
   const { likedUsersForNotification, setHasNewNotification, likesLoading } =
     useProfileStore();
 
+    const { isAuthenticated } = useAuthStore();
   const { setSelectedUser, addChatToTop } = useChatStore();
 
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     setHasNewNotification(false);
-  }, [setHasNewNotification]);
+  }, [isAuthenticated, setHasNewNotification]);
 
   // useEffect(() => {
   //   getMyLikesForNotification();
