@@ -128,7 +128,7 @@ function ProfilePage() {
       <main className="relative z-10 mx-auto pb-30 px-4 py-8 w-6xl overflow-y-auto scrollbar-hide">
         <div className="space-y-6">
           {/* PROFILE HEADER CARD */}
-          <section className="relative group bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+          <section className="relative group bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-4xl p-10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
             {/* Decorative Ambient Glows */}
             <div className="absolute -top-24 -left-24 w-48 h-48 bg-cyan-500/10 blur-[80px] rounded-full" />
             <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full" />
