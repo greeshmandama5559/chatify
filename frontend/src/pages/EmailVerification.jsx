@@ -102,6 +102,7 @@ function EmailVerification() {
     if (otp.every((digit) => digit !== "")) {
       submitOtp(otp.join(""));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otp]);
 
   return (
@@ -177,7 +178,7 @@ function EmailVerification() {
               </div>
             </div>
 
-            <div className="hidden md:w-1/2 md:flex items-center justify-center p-6 bg-gradient-to-bl from-slate-800/20 to-transparent">
+            <div className="hidden md:w-1/2 md:flex items-center justify-center p-6 bg-linear-to-bl from-slate-800/20 to-transparent">
               <div>
                 <img src="/signup.png" alt="Signup Illustration" className="w-full h-auto" />
                 <div className="mt-6 text-center">
