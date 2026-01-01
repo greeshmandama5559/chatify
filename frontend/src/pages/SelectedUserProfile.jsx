@@ -132,14 +132,14 @@ function SelectedUserProfile() {
                 >
                   <div className="absolute inset-0 bg-cyan-500 blur-2xl opacity-20" />
                   <img
-                    src={selectedprofileUser.profilePic || "/avatar.png"}
+                    src={selectedprofileUser?.profilePic || "/avatar.png"}
                     alt="profile"
                     onClick={() =>
-                      openImageModal(selectedprofileUser.profilePic)
+                      openImageModal(selectedprofileUser?.profilePic)
                     }
                     className="relative w-44 h-44 rounded-full object-cover ring-2 ring-cyan-500/30 p-1 cursor-pointer hover:scale-105 transition-transform duration-500 shadow-2xl"
                   />
-                  {isOnline && selectedprofileUser.isActive && (
+                  {isOnline && selectedprofileUser?.isActive && (
                     <div className="absolute bottom-2 right-2 bg-[#030712] p-2 rounded-2xl border border-white/10">
                       <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.6)]" />
                     </div>
@@ -170,8 +170,7 @@ function SelectedUserProfile() {
                   </button>
                   <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-center items-center gap-2">
                     <span 
-                    onClick={handleLike}
-                    className="z-100 cursor-pointer w-full">
+                    className="z-100 w-full">
                       <LikeButton
                         liked={hasLiked}
                         onToggle={handleLike}

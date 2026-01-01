@@ -7,19 +7,25 @@ import { generateStreamToken } from "../lib/stream.js";
 import crypto from "crypto";
 import PendingUser from "../models/PendingUser.js";
 import {
-  sendVerificationEmail,
-  sendWelcomeEmail,
   sendPasswordRestSuccess,
   sendPasswordResetEmail,
 } from "../emails/sendEmail.js";
 
 //--------------------signup-----------------------------------------------
 export const signup = async (req, res) => {
-  const { fullName, Email, Password } = req.body;
+  const { fullName, Password } = req.body;
 
   try {
-    if (!fullName || !Email || !Password) {
+    if (!fullName || !Password) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const updatedFullName = fullName.trim().replace(/\s+/g, " ");
+
+    if (updatedFullName.length < 3) {
+      return res
+        .status(400)
+        .json({ message: "Name must contain at least 3 letters" });
     }
 
     if (Password.length < 6) {
@@ -28,221 +34,119 @@ export const signup = async (req, res) => {
         .json({ message: "Password must be at least 6 characters" });
     }
 
-    if (fullName.trim().length < 3) {
-      return res
-        .status(400)
-        .json({ message: "Name must contain at least 3 letters" });
-    }
-
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(Email)) {
-      return res.status(400).json({ message: "Invalid email" });
-    }
-
-    const existingUser = await User.findOne({ Email });
+    const existingUser = await User.findOne({ fullName: updatedFullName });
     if (existingUser) {
       return res
         .status(400)
-        .json({ message: "User already exists. Please login" });
+        .json({ message: "UserName already exists. Try a different name." });
     }
-
-    await PendingUser.deleteOne({ Email });
-
-    const updatedFullName = fullName.trim().replace(/\s+/g, " ");
 
     const salt = await bcrypt.genSalt(12);
-    const hashed = await bcrypt.hash(Password, salt);
+    const hashedPassword = await bcrypt.hash(Password, salt);
 
-    const verificationToken = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString(); // 6-digit OTP
-    const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
-    const pending = new PendingUser({
+    const user = new User({
       fullName: updatedFullName,
-      Email,
-      Password: hashed,
+      Password: hashedPassword,
       authProvider: "local",
-      verificationToken,
-      verificationTokenExpiresAt,
+      isVerified: true, // since no email verification
+      profileCompleted: false,
     });
 
-    await pending.save();
+    const savedUser = await user.save();
 
-    // send verification email (best-effort)
-    try {
-      const mailRes = await sendVerificationEmail({
-        to: Email,
-        subject: "Verify Your Email",
-        ver: verificationToken,
-      });
-      if (!mailRes.ok) {
-        return res
-          .status(400)
-          .json({ message: "failed to send verification code." });
-      }
-    } catch (err) {
-      console.error("Failed to send verification email:", err);
-      return res
-        .status(400)
-        .json({ message: "Failed to send verification email" });
-    }
+    generateToken(savedUser._id, res);
 
-    return res.status(200).json({
-      success: true,
-      message: "OTP sent to your email. Please verify to complete signup.",
-      Email,
+    return res.status(201).json({
+      _id: savedUser._id,
+      fullName: savedUser.fullName,
+      profilePic: savedUser.profilePic,
+      isVerified: savedUser.isVerified,
+      isActive: savedUser.isActive,
+      likesCount: savedUser.likesCount,
+      isSeenOn: savedUser.isSeenOn,
+      profileCompleted: savedUser.profileCompleted,
     });
   } catch (error) {
-    console.error("error occurred while signup:", error);
+    console.error("Error during signup:", error);
     return res
       .status(500)
       .json({ message: "Something went wrong. Please try again later." });
   }
 };
 
-//--------------------verifyEmail-----------------------------------------------
-export const verifyEmail = async (req, res) => {
-  const { otp } = req.body;
-  try {
-    if (!otp) {
-      return res.status(400).json({ message: "OTP is required" });
-    }
-
-    const pending = await PendingUser.findOne({
-      verificationToken: otp,
-      verificationTokenExpiresAt: { $gt: new Date() },
-    });
-
-    if (!pending) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
-    }
-
-    const existingUser = await User.findOne({ Email: pending.Email });
-    if (existingUser) {
-      await PendingUser.deleteOne({ Email: pending.Email });
-      return res
-        .status(400)
-        .json({ message: "User already exists. Please login." });
-    }
-
-    const user = new User({
-      _id: PendingUser._id,
-      fullName: PendingUser.fullName,
-      bio: PendingUser.bio,
-      profilePic: PendingUser.profilePic,
-      interests: PendingUser.interests,
-      isActive: PendingUser.isActive,
-      likesCount: PendingUser.likesCount,
-    });
-
-    const savedUser = await user.save();
-
-    await PendingUser.deleteOne({ Email: pending.Email });
-
-    try {
-      await sendWelcomeEmail({
-        to: savedUser.Email,
-        subject: "Welcome! Your email is verified",
-        name: savedUser.fullName,
-        url: ENV.CLIENT_URL,
-      });
-    } catch (err) {
-      console.error("Failed to send welcome email:", err);
-    }
-
-    generateToken(savedUser._id, res);
-
-    const userObj = {
-      _id: savedUser._id,
-      fullName: savedUser.fullName,
-      Email: savedUser.Email,
-      profilePic: savedUser.profilePic,
-      isVerified: savedUser.isVerified,
-      isActive: savedUser.isActive,
-      likesCount: savedUser.likesCount,
-    };
-
-    return res.status(200).json(userObj);
-  } catch (error) {
-    console.error("error in verifyEmail controller:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-//--------------------resendOtp-----------------------------------------------
-export const resendOtp = async (req, res) => {
-  try {
-    const { Email } = req.body;
-    if (!Email) return res.status(400).json({ message: "Email required" });
-
-    const pending = await PendingUser.findOne({ Email });
-    if (!pending)
-      return res
-        .status(404)
-        .json({ message: "No pending signup found for this email" });
-
-    const verificationToken = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-    const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-
-    pending.verificationToken = verificationToken;
-    pending.verificationTokenExpiresAt = verificationTokenExpiresAt;
-    await pending.save();
-
-    try {
-      await sendVerificationEmail({
-        to: Email,
-        subject: "Your verification code",
-        ver: verificationToken,
-      });
-    } catch (err) {
-      console.error("Failed to resend verification email:", err);
-      return res
-        .status(500)
-        .json({ message: "Failed to send OTP. Try again later." });
-    }
-
-    return res.status(200).json({ success: true, message: "OTP resent" });
-  } catch (err) {
-    console.error("resendOtp error:", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
 export const login = async (req, res) => {
-  const { Email, Password } = req.body;
+  const { fullName, Password } = req.body;
 
-  if (!Email || !Password) {
-    return res.status(400).json({ message: "Email and Password Are Required" });
+  console.log(fullName, " : ", Password);
+
+  if (!fullName || !Password) {
+    return res
+      .status(400)
+      .json({ message: "Full name and password are required" });
   }
 
   try {
-    const user = await User.findOne({ Email });
-    if (!user)
-      return res
-        .status(400)
-        .json({ message: "email doesnt exist, please sign up" });
+    const user = await User.findOne({ fullName: fullName.trim() });
+    console.log(user);
+    if (!user) {
+      return res.status(400).json({
+        fullName: true,
+        message: "UserName does not exist. Please sign up.",
+      });
+    }
 
     const isPasswordCorrect = await bcrypt.compare(Password, user.Password);
-    if (!isPasswordCorrect)
-      return res.status(400).json({ message: "Invalid Credentials" });
+    if (!isPasswordCorrect) {
+      return res
+        .status(400)
+        .json({ Password: true, message: "Invalid Password" });
+    }
 
     generateToken(user._id, res);
 
-    res.status(200).json({
+    return res.status(200).json({
       _id: user._id,
       fullName: user.fullName,
-      Email: user.Email,
       profilePic: user.profilePic,
       isVerified: user.isVerified,
+      isActive: user.isActive,
+      likesCount: user.likesCount,
+      isSeenOn: user.isSeenOn,
     });
   } catch (error) {
-    console.error("error in login controller ", error);
-    if (!res.headersSent) {
-      return res.status(500).json({ message: "internal server error" });
+    console.error("Error in login controller:", error);
+    return res
+      .status(500)
+      .json({ error: true, message: "Internal server error" });
+  }
+};
+
+export const completeProfile = async (req, res) => {
+  try {
+    const { profilePic, gender, fullName } = req.body;
+    const userId = req.user._id;
+
+    let updateData = { gender };
+
+    updateData.profileCompleted = true;
+
+    if (fullName) updateData.fullName = fullName;
+
+    if (profilePic.includes("/")) {
+      updateData.profilePic = profilePic;
+    } else if (profilePic) {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic);
+      updateData.profilePic = uploadResponse.secure_url;
     }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    }).select("-password");
+
+    return res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error("Complete profile error:", error);
+    return res.status(500).json({ message: "Profile update failed" });
   }
 };
 
@@ -343,70 +247,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const googleSuccess = async (req, res) => {
-  try {
-    let user = req.user;
-
-    if (user?.isPending) {
-      return res.redirect(
-        `${ENV.CLIENT_URL}/complete-profile?state=${user.token}`
-      );
-    }
-
-    generateToken(user._id, res);
-
-    return res.redirect(ENV.CLIENT_URL);
-  } catch (error) {
-    console.log("error in googlesuccess: ", error);
-    return res.status(500).send("Authentication error");
-  }
-};
-
-export const completeProfile = async (req, res) => {
-  try {
-    const { state, fullName } = req.body;
-
-    const pending = await PendingUser.findOne({
-      verificationToken: state,
-    });
-
-    if (!pending) {
-      return res.status(400).json({ message: "Invalid or expired token" });
-    }
-
-    const nameExists = await User.findOne({ fullName });
-    if (nameExists) {
-      return res.status(409).json({ message: "name already taken" });
-    }
-
-    const user = await User.create({
-      googleId: pending.googleId,
-      fullName,
-      Email: pending.Email,
-      profilePic: pending.profilePic,
-      isVerified: true,
-    });
-
-    await PendingUser.deleteOne({ _id: pending._id });
-
-    generateToken(user._id, res);
-
-    return res.status(200).json({
-      _id: user._id,
-      fullName: user.fullName,
-      Email: user.Email,
-      profilePic: user.profilePic,
-      isVerified: user.isVerified,
-    });
-  } catch (error) {
-    console.log("error in complete profile (backend):", error);
-    res.status(400).json({
-      success: false,
-      message: "internal server error",
-    });
-  }
-};
-
 export const logout = async (_, res) => {
   res.cookie("jwt", "", { maxAge: 0 });
   res.status(200).json({ message: "logout successful" });
@@ -420,13 +260,18 @@ export const updateProfile = async (req, res) => {
 
     const userId = req.user._id;
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    const updatedData = {};
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { profilePic: uploadResponse.secure_url },
-      { new: true }
-    );
+    if (profilePic.includes("/")) {
+      updatedData.profilePic = profilePic;
+    } else {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic);
+      updatedData.profilePic = uploadResponse.secure_url;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+      new: true,
+    }).select("-Password");
 
     res.status(200).json(updatedUser);
   } catch (error) {

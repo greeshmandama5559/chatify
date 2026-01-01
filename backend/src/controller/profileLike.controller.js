@@ -14,22 +14,34 @@ export const likeProfile = async (req, res) => {
   }
 
   try {
-    const like = await ProfileLike.create({
-      likedBy: likedBy,
+    // Try to create like only if it doesn't exist
+    const existingLike = await ProfileLike.findOne({
+      likedBy,
+      likedUser: likedUserId,
+    });
+
+    if (existingLike) {
+      // already liked → idempotent success
+      return res.status(200).json({ success: true });
+    }
+
+    // Create like
+    await ProfileLike.create({
+      likedBy,
       likedUser: likedUserId,
       hasLiked: true,
     });
 
+    // Update user stats
     await User.findByIdAndUpdate(likedUserId, {
       $inc: { likesCount: 1 },
-      $push: { likes: { userId: likedBy } },
-      hasNewNotification: true,
+      $addToSet: { likes: { userId: likedBy } },
+      $set: { hasNewNotification: true },
     });
 
+    // Notify receiver
     const receiverSocketId = getReceiverSocketId(likedUserId.toString());
-
     if (receiverSocketId) {
-      console.log("sending like.......");
       io.to(receiverSocketId).emit("profile:liked", {
         likedBy,
       });
@@ -59,17 +71,17 @@ export const unlikeProfile = async (req, res) => {
     });
 
     if (!removed) {
-      return res.status(404).json({ message: "Like not found" });
+      // already unliked → idempotent success
+      return res.status(200).json({ success: true });
     }
 
     await User.findByIdAndUpdate(likedUserId, {
       $inc: { likesCount: -1 },
       $pull: { likes: { userId: likedBy } },
-      hasNewNotification: false,
+      $set: { hasNewNotification: false },
     });
 
     const receiverSocketId = getReceiverSocketId(likedUserId.toString());
-
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("profile:unliked", {
         likedBy,

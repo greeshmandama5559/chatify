@@ -54,6 +54,11 @@ function TopLikedUsers() {
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
                     </div>
+                    {contact?.gender === "female" && (
+                      <div className="absolute -top-2 -left-2 -rotate-45 opacity-90 rounded-full transition-all shadow-lg">
+                        <img src="/ribbon.png" alt="" className="w-10 h-10" />
+                      </div>
+                    )}
                   </div>
 
                   <div

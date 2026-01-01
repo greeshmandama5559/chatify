@@ -54,6 +54,11 @@ function DiscoverPage() {
                         alt={contact.fullName}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
+                      {contact?.gender === "female" && (
+                        <div className="absolute -top-2 -left-2 -rotate-40 opacity-90 rounded-full transition-all shadow-lg">
+                          <img src="/ribbon.png" alt="" className="w-10 h-10" />
+                        </div>
+                      )}
                     </div>
                     {contact.isNew && (
                       <div className="bg-cyan-100/80 w-10 ml-5 backdrop-blur-sm z-50 -mt-4 px-2 h-5 rounded-md flex justify-center items-center border border-cyan-200">
@@ -84,9 +89,9 @@ function DiscoverPage() {
                   {/* Action Buttons */}
                   <div className=" flex w-full gap-3">
                     <button
-                      onClick={() => { 
+                      onClick={() => {
                         setProfileUser(contact);
-                        navigate(`/user-profile/${contact._id}`)
+                        navigate(`/user-profile/${contact._id}`);
                       }}
                       className="flex-1 px-4 py-2 text-sm font-semibold rounded-full border border-indigo-500/30 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-all"
                     >

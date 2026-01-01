@@ -1,8 +1,69 @@
 import React from "react";
-import { Rocket, Trophy, Target, Sparkles, ArrowRight, Users } from "lucide-react";
+import {
+  Trophy,
+  Sparkles,
+  ArrowRight,
+  Users,
+  LockIcon,
+  UserIcon,
+  EyeIcon,
+  LoaderIcon,
+  EyeOffIcon,
+  AlertCircle,
+} from "lucide-react";
 import SideNavBar from "./SideNavBar";
+import { useState } from "react";
+import { useAuthStore } from "../store/useAuthStore";
+import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
+
+
+const avatars = [
+  "/male1.jpg",
+  "/male4.jpeg",
+  "/female2.webp",
+  "/female3.jpg",
+];
 
 const ProfileCreateAccount = () => {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    Password: "",
+  });
+
+  const [errors, setErrors] = useState({});
+
+  const { signup, isSigningUp } = useAuthStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({}); // Clear previous errors
+
+    if (formData.Password.length < 6) {
+      setErrors({ Password: "Password must be at least 6 characters" });
+      return;
+    }
+
+    if (formData.fullName.length < 3) {
+      setErrors({ fullName: "name should be least 3 letters" });
+    }
+
+    try {
+      const result = await signup(formData);
+      if (result?.success) {
+        toast.success("Account created successfully!");
+        navigate("/complete-profile");
+      } else if (!result?.success) {
+        setErrors({ fullName: result?.error });
+      }
+    } catch (error) {
+      console.error("Error during signup: ", error);
+      toast.error("Something went wrong");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 flex items-center justify-center p-6 selection:bg-indigo-500/30">
       {/* Background Glow Effect */}
@@ -23,7 +84,7 @@ const ProfileCreateAccount = () => {
 
           <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-tight">
             Unlock your <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-cyan-400">
               True Potential.
             </span>
           </h1>
@@ -60,42 +121,101 @@ const ProfileCreateAccount = () => {
               It only takes 30 seconds to level up.
             </p>
 
-            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">
-                  Full Name
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">
+                  User Name
                 </label>
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                />
+                <div className="relative group mt-2">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+                  <input
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        fullName: e.target.value,
+                      });
+                      setErrors((prev) => ({ ...prev, fullName: "" }));
+                    }}
+                    className={`w-full bg-slate-800/50 border ${
+                      errors.fullName ? "border-red-500/50" : "border-slate-700"
+                    } text-white rounded-xl py-3 px-10 outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all`}
+                    placeholder="User Name"
+                    required
+                  />
+                </div>
+                {errors.fullName && (
+                  <div className="flex items-center gap-1 text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3 h-3" /> {errors.fullName}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">
-                  Email Address
+              {/* Password Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">
+                  Password
                 </label>
-                <input
-                  type="email"
-                  placeholder="john@example.com"
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                />
+                <div className="relative group mt-2">
+                  <LockIcon
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors`}
+                  />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.Password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, Password: e.target.value })
+                    }
+                    className={`w-full bg-slate-800/50 border ${
+                      errors.Password ? "border-red-500/50" : "border-slate-700"
+                    } text-white rounded-xl py-3 px-10 outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all`}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.Password && (
+                  <div className="flex items-center gap-1 text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3 h-3" /> {errors.Password}
+                  </div>
+                )}
               </div>
 
-              <button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center group transition-all">
-                Get Started
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <button
+                type="submit"
+                disabled={isSigningUp}
+                className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center group transition-all"
+              >
+                {isSigningUp ? (
+                  <LoaderIcon className="w-5 h-5 animate-spin mx-auto" />
+                ) : (
+                  <div className="flex justify-center items-center">
+                    Get Started
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                )}
               </button>
             </form>
 
             <div className="mt-8 flex justify-center space-x-6">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
+                {avatars.map((image, i) => (
                   <img
                     key={i}
                     className="w-8 h-8 rounded-full border-2 border-slate-900"
-                    src={`https://i.pravatar.cc/150?u=${i}`}
+                    src={image}
                     alt="User"
                   />
                 ))}
@@ -107,7 +227,7 @@ const ProfileCreateAccount = () => {
           </div>
 
           {/* Abstract background shape for the card */}
-          <div className="absolute -bottom-6 -right-6 w-full h-full bg-indigo-600/10 rounded-3xl -z-0"></div>
+          <div className="absolute -bottom-6 -right-6 w-full h-full bg-indigo-600/10 rounded-3xl z-0"></div>
         </div>
       </div>
       <SideNavBar />
