@@ -77,8 +77,6 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { fullName, Password } = req.body;
 
-  console.log(fullName, " : ", Password);
-
   if (!fullName || !Password) {
     return res
       .status(400)

@@ -22,9 +22,9 @@ function PasswordChange({ setIsChangingPassword }) {
           <div className="text-center mb-10">
             <LockKeyhole className="w-12 h-12 mx-auto text-slate-400 mb-4" />
             <h2 className="text-2xl font-bold text-slate-200 mb-2">
-              Email Verification
+              Account Verification
             </h2>
-            <p className="text-slate-400">Enter your Email for Verification</p>
+            <p className="text-slate-400">Enter your phone number for Verification</p>
           </div>
 
           {!isSubmitted || error ? (
@@ -34,7 +34,7 @@ function PasswordChange({ setIsChangingPassword }) {
                 <div className="relative">
                   <PhoneIcon className="auth-input-icon" />
                   <input
-                    type="email"
+                    type="number"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     className="input"

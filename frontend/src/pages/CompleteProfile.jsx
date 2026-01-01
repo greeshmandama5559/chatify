@@ -15,12 +15,12 @@ import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import toast from "react-hot-toast";
 
 const avatars = [
-  "/maleAavatar/male1.jpg",
-  "/maleAavatar/male2.jpg",
-  "/maleAavatar/male4.jpg",
-  "/femaleAavatar/female1.jpg",
-  "/femaleAavatar/female2.jpg",
-  "/femaleAavatar/female3.jpg",
+  "/maleAavatars/male1.jpg",
+  "/maleAavatars/male8.jpg",
+  "/maleAavatars/male4.jpg",
+  "/femaleAavatars/female1.jpg",
+  "/femaleAavatars/female2.jpg",
+  "/femaleAavatars/female3.jpg",
 ];
 
 function CompleteProfile() {

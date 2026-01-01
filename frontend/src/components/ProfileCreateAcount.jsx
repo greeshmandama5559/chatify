@@ -19,10 +19,10 @@ import toast from "react-hot-toast";
 
 
 const avatars = [
-  "/male1.jpg",
-  "/male4.jpeg",
-  "/female2.webp",
-  "/female3.jpg",
+  "/maleAavatars/male1.jpg",
+  "/maleAavatars/male4.jpg",
+  "/femaleAavatars/female2.jpg",
+  "/femaleAavatars/female3.jpg",
 ];
 
 const ProfileCreateAccount = () => {
