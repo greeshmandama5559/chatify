@@ -5,6 +5,13 @@ import { io } from "socket.io-client";
 
 const BASE_URL = `${import.meta.env.VITE_BACKEN_URL}/`;
 
+const getAuthStatus = (user) => {
+  if (!user) return "guest";
+  if (!user.isVerified) return "authenticated";
+  if (!user.profileCompleted) return "verified";
+  return "ready";
+};
+
 export const useAuthStore = create((set, get) => ({
   authUser: null,
   isAuthenticated: false,
@@ -16,21 +23,33 @@ export const useAuthStore = create((set, get) => ({
   socket: null,
   onlineUsers: [],
   error: null,
-  pendingSignup: null,
   similarInteretsUsers: [],
+  authStatus: null,
 
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
-      set({ authUser: res.data, isAuthenticated: true });
+
+      const user = res.data;
+      set({
+        authUser: user,
+        authStatus: getAuthStatus(user),
+        isCheckingAuth: false,
+      });
+
+      if (get().authStatus === "ready") {
+        set({ isAuthenticated: true });
+      }
+
       if (!get().authUser || get().socket) return;
       get().connectSocket();
     } catch (error) {
-      console.log(
-        "Error in check Auth: ",
-        error?.response?.data?.message
-      );
-      set({ authUser: null });
+      console.log("Error in check Auth: ", error?.response?.data?.message);
+      set({
+        authUser: null,
+        authStatus: "guest",
+        isCheckingAuth: false,
+      });
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -41,15 +60,14 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/signup", data);
 
+      const user = res.data;
+
       set({
-        pendingSignup: {
-          Email: data.Email,
-          fullName: data.fullName || null,
-        },
-        error: null,
+        authUser: user,
+        authStatus: getAuthStatus(user),
       });
 
-      toast.success(res?.data?.message || "OTP sent to your email");
+      console.log(user);
 
       return { success: true };
     } catch (error) {
@@ -57,12 +75,6 @@ export const useAuthStore = create((set, get) => ({
         toast.error(error.response.data.message);
         set({ error: error.response.data.message });
         console.log("Error in signup page: ", error.response.data);
-      } else if (error?.message) {
-        toast.error(error.message);
-        console.log("Error in signup page (network/CORS): ", error);
-      } else {
-        toast.error("An unknown error occurred");
-        console.log("Error in signup page (unknown): ", error);
       }
       return {
         success: false,
@@ -70,6 +82,29 @@ export const useAuthStore = create((set, get) => ({
       };
     } finally {
       set({ isSigningUp: false });
+    }
+  },
+
+  completeProfile: async (data) => {
+    set({ isLoading: true });
+    try {
+      const res = await axiosInstance.post("/auth/complete-profile", data);
+
+      const user = res.data;
+
+      set({
+        authUser: user,
+        authStatus: getAuthStatus(user),
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.log("error in complete profile: ", error?.response?.data?.message);
+      const message = error?.response?.data?.message || "Profile update failed";
+      set({ error: message });
+      return { success: false, error: message };
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -100,6 +135,31 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  login: async (data) => {
+    set({ isLoggingIn: true });
+    try {
+      const res = await axiosInstance.post("/auth/login", data);
+      set({ authUser: res.data, isAuthenticated: true });
+
+      get().connectSocket();
+      return { success: true };
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        if (error?.response?.data?.error) {
+          console.log("Error in login page: ", error.response.data);
+          return;
+        }
+        return {
+          fullName: error?.response?.data?.fullName,
+          Password: error?.response?.data?.Password,
+          message: error.response.data.message,
+        };
+      }
+    } finally {
+      set({ isLoggingIn: false });
+    }
+  },
+
   resendSignupOtp: async (email) => {
     set({ isLoading: true });
     try {
@@ -122,31 +182,6 @@ export const useAuthStore = create((set, get) => ({
       };
     } finally {
       set({ isLoading: false });
-    }
-  },
-
-  login: async (data) => {
-    set({ isLoggingIn: true });
-    try {
-      const res = await axiosInstance.post("/auth/login", data);
-      set({ authUser: res.data, isAuthenticated: true });
-
-      toast.success("successfully logged in");
-
-      get().connectSocket();
-    } catch (error) {
-      if (error?.response?.data?.message) {
-        toast.error(error.response.data.message);
-        console.log("Error in login page: ", error.response.data);
-      } else if (error?.message) {
-        toast.error(error.message);
-        console.log("Error in login page (network/CORS): ", error);
-      } else {
-        toast.error("An unknown error occurred");
-        console.log("Error in login page (unknown): ", error);
-      }
-    } finally {
-      set({ isLoggingIn: false });
     }
   },
 
@@ -181,23 +216,6 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  completeProfile: async (state, userName) => {
-    set({ isLoading: true });
-    try {
-      const res = await axiosInstance.post("/auth/complete-profile", {
-        state,
-        fullName: userName,
-      });
-      set({ authUser: res.data, isAuthenticated: true, pendingSignup: null });
-      return { success: true };
-    } catch (error) {
-      console.error("error in set cahnge:", error);
-      set({ error: error?.response?.data?.message });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
@@ -210,7 +228,10 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  isUpdatingProfile: false,
+
   updateProfilePic: async (profilePic) => {
+    set({isUpdatingProfile:true});
     try {
       const res = await axiosInstance.put("/auth/update-profile", profilePic);
       set({ authUser: res.data });
@@ -221,6 +242,8 @@ export const useAuthStore = create((set, get) => ({
         error?.response?.data ?? error?.message ?? error
       );
       toast.error("Failed to update profile");
+    } finally {
+      set({isUpdatingProfile : false});
     }
   },
 

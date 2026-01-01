@@ -4,6 +4,7 @@ import {
   MessageCircle,
   UserCircle2,
   Heart,
+  SquareUser,
 } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -18,6 +19,7 @@ const navItems = [
   { id: "home", label: "Home", icon: HomeIcon, path: "/" },
   { id: "discover", label: "Discover", icon: Compass, path: "/discover" },
   { id: "chats", label: "Chats", icon: MessageCircle, path: "/chats" },
+  { id: "avatars", label: "Avatars", icon: SquareUser, path: "/avatars" },
   {
     id: "notifications",
     label: "Notifications",

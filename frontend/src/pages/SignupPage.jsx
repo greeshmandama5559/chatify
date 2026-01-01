@@ -6,192 +6,208 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   MessageCircleIcon,
   LockIcon,
-  MailIcon,
   UserIcon,
   EyeIcon,
   LoaderIcon,
   EyeOffIcon,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 function SignUpPage() {
   const [formData, setFormData] = useState({
     fullName: "",
-    Email: "",
     Password: "",
   });
+
+  const [errors, setErrors] = useState({});
+
   const { signup, isSigningUp } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (formData.Password.length < 6) {
-        return toast.error("Password Must Be least 6 characters");
-      }
+    setErrors({}); // Clear previous errors
 
+    if (formData.Password.length < 6) {
+      setErrors({ Password: "Password must be at least 6 characters" });
+      return;
+    }
+
+    if (formData.fullName.length < 3) {
+      setErrors({ fullName: "name should be least 3 letters" });
+    }
+
+    try {
       const result = await signup(formData);
       if (result?.success) {
-        localStorage.setItem("pendingEmail", formData.Email);
-        navigate("/verify-email");
+        toast.success("Account created successfully!");
+        navigate("/complete-profile");
+      } else if (!result?.success) {
+        setErrors({ fullName: result?.error });
       }
     } catch (error) {
       console.error("Error during signup: ", error);
+      toast.error("Something went wrong");
     }
   };
 
   return (
-    <div className="w-full h-full overflow-hidden flex items-center justify-center p-4 bg-slate-900">
-      <div className="relative w-full max-w-5xl md:h-[700px] h-full mb-15">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#020617] relative overflow-hidden">
+      {/* Creative Background Elements */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 blur-[120px] rounded-full" />
+
+      <div className="relative w-full max-w-5xl z-10">
         <BorderAnimatedContainer>
-          <div className="w-full flex flex-col md:flex-row ">
-            <div className="md:w-1/2 p-8 md:px-13 flex items-center justify-center md:border-r border-slate-600/30">
-              <div className="w-full max-w-md">
-                <div className="text-center mb-8">
-                  <MessageCircleIcon className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-                  <h2 className="text-2xl font-bold text-slate-200 mb-2">
+          <div className="w-full flex flex-col md:flex-row bg-slate-900/50 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/5">
+            {/* Left Side: Form */}
+            <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+              <div className="w-full max-w-md mx-auto">
+                <div className="mb-10">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-cyan-500/10 mb-6 border border-cyan-500/20">
+                    <MessageCircleIcon className="w-8 h-8 text-cyan-400" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-white tracking-tight">
                     Create Account
                   </h2>
-                  <p className="text-slate-400">Sign up for a new account</p>
+                  <p className="text-slate-400 mt-2">
+                    Join our community and start chatting.
+                  </p>
                 </div>
-                <form
-                  onSubmit={handleSubmit}
-                  className=" space-y-3 md:space-y-5"
-                >
-                  <div>
-                    <label className="auth-input-label">Full Name</label>
-                    <div className="relative">
-                      <UserIcon className="auth-input-icon" />
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Full Name Input */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300 ml-1">
+                      User Name
+                    </label>
+                    <div className="relative group mt-2">
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
                       <input
                         type="text"
                         value={formData.fullName}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setFormData({
                             ...formData,
                             fullName: e.target.value,
-                          })
-                        }
-                        className="input"
-                        placeholder="Enter your Name"
+                          });
+                          setErrors((prev) => ({ ...prev, fullName: "" }));
+                        }}
+                        className={`w-full bg-slate-800/50 border ${
+                          errors.fullName
+                            ? "border-red-500/50"
+                            : "border-slate-700"
+                        } text-white rounded-xl py-3 px-10 outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all`}
+                        placeholder="User Name"
                         required
                       />
                     </div>
+                    {errors.fullName && (
+                      <div className="flex items-center gap-1 text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="w-3 h-3" /> {errors.fullName}
+                      </div>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="auth-input-label">Email</label>
-                    <div className="relative">
-                      <MailIcon className="auth-input-icon" />
-                      <input
-                        type="email"
-                        value={formData.Email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, Email: e.target.value })
-                        }
-                        className="input"
-                        placeholder="Enter your Email"
-                        required
+                  {/* Password Input */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300 ml-1">
+                      Password
+                    </label>
+                    <div className="relative group mt-2">
+                      <LockIcon
+                        className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors`}
                       />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="auth-input-label">Password</label>
-                    <div className="relative">
-                      <LockIcon className="auth-input-icon" />
                       <input
                         type={showPassword ? "text" : "password"}
                         value={formData.Password}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            Password: e.target.value,
-                          })
+                          setFormData({ ...formData, Password: e.target.value })
                         }
-                        className="input"
-                        placeholder="Enter your password"
+                        className={`w-full bg-slate-800/50 border ${
+                          errors.Password
+                            ? "border-red-500/50"
+                            : "border-slate-700"
+                        } text-white rounded-xl py-3 px-10 outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 transition-all`}
+                        placeholder="••••••••"
                         required
                       />
-
-                      {showPassword ? (
-                        <EyeOffIcon
-                          className="eye-btn pointer-events-auto z-20"
-                          onClick={() => setShowPassword(false)}
-                        />
-                      ) : (
-                        <EyeIcon
-                          className="eye-btn pointer-events-auto z-20"
-                          onClick={() => setShowPassword(true)}
-                        />
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOffIcon className="w-5 h-5" />
+                        ) : (
+                          <EyeIcon className="w-5 h-5" />
+                        )}
+                      </button>
                     </div>
+                    {errors.Password && (
+                      <div className="flex items-center gap-1 text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="w-3 h-3" /> {errors.Password}
+                      </div>
+                    )}
                   </div>
 
                   <button
-                    className="auth-btn mt-2"
                     type="submit"
                     disabled={isSigningUp}
+                    className="w-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] shadow-[0_0_20px_rgba(6,182,212,0.3)] mt-4"
                   >
                     {isSigningUp ? (
-                      <LoaderIcon className="w-full h-5 animate-spin text-center" />
+                      <LoaderIcon className="w-5 h-5 animate-spin mx-auto" />
                     ) : (
                       "Create Account"
                     )}
                   </button>
                 </form>
 
-                <div className="mt-4">
-                  <div className="flex items-center w-full gap-4 my-4">
-                    <div className="flex-1 h-px bg-slate-600/40"></div>
-                    <span className="text-slate-400 text-sm font-medium">
-                      OR
-                    </span>
-                    <div className="flex-1 h-px bg-slate-600/40"></div>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      (window.location.href = `${import.meta.env.VITE_BACKEN_URL}/api/auth/google`)
-                    }
-                    type="button"
-                    className="w-full flex items-center justify-center gap-3 py-3 bg-white/90 hover:bg-white 
-               text-slate-900 font-medium border border-slate-300 rounded-xl shadow-sm opacity-90 cursor-pointer
-               transition-all duration-200 hover:shadow-md hover:opacity-100 active:scale-[0.98] "
+                <p className="mt-8 text-center text-slate-400 text-sm">
+                  Already have an account?{" "}
+                  <Link
+                    to="/login"
+                    className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
                   >
-                    <img
-                      src="/google-icon.png"
-                      alt="Google icon"
-                      className="w-5 h-5"
-                    />
-                    Continue with Google
-                  </button>
-                </div>
-
-                <div className="mt-6 text-center">
-                  <Link to="/login" className="auth-link">
-                    Already have an account? Login
+                    Log in
                   </Link>
-                </div>
+                </p>
               </div>
             </div>
 
-            <div className="hidden md:w-1/2 md:flex items-center justify-center p-6 bg-gradient-to-bl from-slate-800/20 to-transparent">
-              <div>
-                <img
-                  src="/signup.png"
-                  alt="Signup Illustration"
-                  className="w-full h-auto"
-                />
-                <div className="mt-6 text-center">
-                  <h3 className="text-xl font-medium text-cyan-400">
-                    Start Your Journey Today
-                  </h3>
-                  <div className="mt-4 flex justify-center gap-4">
-                    <span className="auth-badge">Free</span>
-                    <span className="auth-badge">Easy Setup</span>
-                    <span className="auth-badge">Private</span>
-                  </div>
+            {/* Right Side: Visuals */}
+            <div className="hidden md:flex md:w-1/2 bg-slate-800/30 items-center justify-center p-12 relative overflow-hidden">
+              <div className="absolute inset-0 bg-linear-to-br from-cyan-500/5 to-purple-500/5" />
+              <div className="relative z-10 text-center">
+                <div className="relative inline-block">
+                  <div className="absolute -inset-4 bg-cyan-500/20 blur-2xl rounded-full animate-pulse" />
+                  <img
+                    src="/signup.png"
+                    alt="Signup Illustration"
+                    className="w-80 h-auto relative drop-shadow-[0_0_30px_rgba(6,182,212,0.2)]"
+                  />
+                </div>
+                <h3 className="text-2xl font-bold text-white mt-10">
+                  Start Your Journey Today
+                </h3>
+                <p className="text-slate-400 mt-3 max-w-xs mx-auto">
+                  Experience the next generation of secure messaging and
+                  collaboration.
+                </p>
+
+                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                  {["Free", "Secure", "Fast"].map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-300 backdrop-blur-md"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>

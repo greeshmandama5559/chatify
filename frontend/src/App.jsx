@@ -8,7 +8,6 @@ import { useEffect } from "react";
 import PageLoader from "./components/PageLoader";
 import { useChatStore } from "./store/useChatStore";
 import CallPage from "./pages/CallPage";
-import EmailVerification from "./pages/EmailVerification";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import CompleteProfile from "./pages/CompleteProfile";
 import Home from "./pages/Home";
@@ -21,45 +20,52 @@ import SimilarInteretsPage from "./pages/SimilarInteretsPage";
 import ScrollToTop from "./components/ScrollToTop";
 import DiscoverCreateAccount from "./components/DiscoverCreateAccount";
 import ChatCreateProfile from "./components/ChatCreateProfile";
+import LocationComponent from "./pages/Location";
 import ProfileCreateAccount from "./components/ProfileCreateAcount";
+import AvatarsPage from "./pages/AvatarsPage";
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
-  if (!isAuthenticated) {
+const AuthGuard = ({ allow, children }) => {
+  const { authStatus } = useAuthStore();
+
+  if (!allow.includes(authStatus)) {
     return <Navigate to="/" replace />;
-  }
-  return children;
-};
-
-const ProtectedLogRoute = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
-
-const RedirectAuthenticatedUser = ({ children }) => {
-  const { authUser, isAuthenticated } = useAuthStore();
-  if (isAuthenticated && authUser?.isVerified) {
-    return <Navigate to={import.meta.env.VITE_CLIENT_ORIGIN} replace />;
   }
 
   return children;
 };
 
 function App() {
-  const { checkAuth, isCheckingAuth, authUser, isAuthenticated } =
-    useAuthStore();
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+  const {
+    checkAuth,
+    isCheckingAuth,
+    authUser,
+    isAuthenticated,
+    getSimilarInterestUsers,
+    authStatus,
+  } = useAuthStore();
 
   const socket = useAuthStore((s) => s.socket);
   const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
 
+  const {
+    selectedUser,
+    getMyChatPartners,
+    hydrateFromServer,
+    getAllContacts,
+    getTrendingUsers,
+  } = useChatStore();
+
+  const { subscribeToLike, likeCheck, getMyLikes, getMyLikesForNotification } =
+    useProfileStore();
+
   useEffect(() => {
+    if (authStatus === "verified") return;
+
+    checkAuth();
+  }, [authStatus, checkAuth]);
+
+  useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!socket || !isAuthenticated || !authUser?.isVerified) return;
 
     subscribeToMessages();
@@ -67,15 +73,16 @@ function App() {
     return () => {
       socket.off("newMessage");
     };
-  }, [socket, isAuthenticated, authUser?.isVerified, subscribeToMessages]);
-
-  const { subscribeToLike, likeCheck } = useProfileStore();
-
-  const { selectedUser } = useChatStore();
-
-  const { getMyLikes, getMyLikesForNotification } = useProfileStore();
+  }, [
+    socket,
+    isAuthenticated,
+    authUser?.isVerified,
+    subscribeToMessages,
+    authStatus,
+  ]);
 
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!socket) return;
 
     subscribeToLike();
@@ -84,21 +91,27 @@ function App() {
       socket.off("profile:liked");
       socket.off("profile:unliked");
     };
-  }, [socket, subscribeToLike]);
+  }, [authStatus, socket, subscribeToLike]);
 
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
-    const userId = selectedUser?._id
+    const userId = selectedUser?._id;
 
     if (userId) {
       likeCheck(userId);
     }
-  }, [authUser?.isVerified, isAuthenticated, likeCheck, selectedUser?._id]);
-
-  const { getMyChatPartners, hydrateFromServer } = useChatStore();
+  }, [
+    authStatus,
+    authUser?.isVerified,
+    isAuthenticated,
+    likeCheck,
+    selectedUser?._id,
+  ]);
 
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     const hydrate = async () => {
@@ -112,19 +125,18 @@ function App() {
     authUser?.isVerified,
     getMyChatPartners,
     hydrateFromServer,
+    authStatus,
   ]);
 
-  
-
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     getMyLikes();
-  }, [authUser?.isVerified, getMyLikes, isAuthenticated]);
-
-  const { getAllContacts, getTrendingUsers } = useChatStore();
+  }, [authStatus, authUser?.isVerified, getMyLikes, isAuthenticated]);
 
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     if (authUser?.likesCount !== undefined) {
@@ -132,6 +144,7 @@ function App() {
     }
     getTrendingUsers();
   }, [
+    authStatus,
     authUser?.isVerified,
     authUser?.likesCount,
     getMyLikesForNotification,
@@ -139,9 +152,8 @@ function App() {
     isAuthenticated,
   ]);
 
-  const { getSimilarInterestUsers } = useAuthStore();
-
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     getSimilarInterestUsers();
@@ -150,24 +162,15 @@ function App() {
     authUser?.interests,
     getSimilarInterestUsers,
     isAuthenticated,
+    authStatus,
   ]);
 
   useEffect(() => {
+    if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     getAllContacts();
-  }, [authUser?.isVerified, getAllContacts, isAuthenticated]);
-
-  // useEffect(() => {
-  //   if (!isAuthenticated || !authUser?.isVerified) return;
-
-  //   getTrendingUsers();
-  // }, [
-  //   getTrendingUsers,
-  //   authUser?.isVerified,
-  //   isAuthenticated,
-  //   authUser?.likesCount,
-  // ]);
+  }, [authStatus, authUser?.isVerified, getAllContacts, isAuthenticated]);
 
   if (isCheckingAuth) return <PageLoader />;
 
@@ -181,99 +184,113 @@ function App() {
       <ScrollToTop />
 
       <Routes>
+        {/* PUBLIC */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+        <Route path="/location" element={<LocationComponent />} />
+
+        {/* AUTHENTICATED BUT NOT VERIFIED */}
+        <Route
+          path="/complete-profile"
+          element={
+            <AuthGuard allow={["verified"]}>
+              <CompleteProfile />
+            </AuthGuard>
+          }
+        />
+
+        {/* FULL ACCESS */}
         <Route
           path="/chats"
-          element={isAuthenticated ? <ChatPage /> : <ChatCreateProfile />}
+          element={
+            isAuthenticated ?
+              <ChatPage /> : <ChatCreateProfile />
+          }
         />
 
         <Route
           path="/chats/:chatId"
           element={
-            <ProtectedLogRoute>
+            <AuthGuard allow={["ready"]}>
               <ChatPage />
-            </ProtectedLogRoute>
+            </AuthGuard>
           }
         />
 
-        <Route path="/" element={<Home />} />
+        <Route
+          path="/avatars"
+          element={
+            <AuthGuard allow={["ready"]}>
+              <AvatarsPage />
+            </AuthGuard>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            isAuthenticated ?
+              <ProfilePage /> : <ProfileCreateAccount />
+          }
+        />
 
         <Route
           path="/discover"
           element={
-            isAuthenticated ? <DiscoverPage /> : <DiscoverCreateAccount />
+            isAuthenticated ?
+              <DiscoverPage /> : <DiscoverCreateAccount />
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <AuthGuard allow={["ready"]}>
+              <NotificationPage />
+            </AuthGuard>
           }
         />
 
         <Route
           path="/similar-interests"
           element={
-            <ProtectedLogRoute>
+            <AuthGuard allow={["ready"]}>
               <SimilarInteretsPage />
-            </ProtectedLogRoute>
+            </AuthGuard>
           }
         />
 
         <Route
           path="/user-profile"
           element={
-            <ProtectedLogRoute>
+            <AuthGuard allow={["ready"]}>
               <SelectedUserProfile />
-            </ProtectedLogRoute>
+            </AuthGuard>
           }
         />
 
         <Route
           path="/user-profile/:userId"
           element={
-            <ProtectedLogRoute>
+            <AuthGuard allow={["ready"]}>
               <SelectedUserProfile />
-            </ProtectedLogRoute>
+            </AuthGuard>
           }
         />
 
-        <Route
-          path="/profile"
-          element={isAuthenticated ? <ProfilePage /> : <ProfileCreateAccount />}
-        />
-
-        <Route path="/verify-email" element={<EmailVerification />} />
-
-        <Route path="/complete-profile" element={<CompleteProfile />} />
-
-        <Route path="/notifications" element={<NotificationPage />} />
-
-        <Route
-          path="/signup"
-          element={
-            <RedirectAuthenticatedUser>
-              <SignupPage />
-            </RedirectAuthenticatedUser>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <RedirectAuthenticatedUser>
-              <LoginPage />
-            </RedirectAuthenticatedUser>
-          }
-        />
         <Route
           path="/call/:id"
           element={
-            <ProtectedRoute>
+            <AuthGuard allow={["ready"]}>
               <CallPage />
-            </ProtectedRoute>
+            </AuthGuard>
           }
         />
-        <Route
-          path="/reset-password/:token"
-          element={
-            <RedirectAuthenticatedUser>
-              <ResetPasswordPage />
-            </RedirectAuthenticatedUser>
-          }
-        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       <Toaster position="top-center" />

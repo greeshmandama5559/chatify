@@ -55,6 +55,7 @@ export const getTrendingUsers = async (req, res) => {
       likesCount: user.likesCount,
       gallery: user.gallery,
       createdAt: user.createdAt,
+      gender: user.gender,
     }));
 
     res
@@ -88,6 +89,7 @@ export const getAllContacts = async (req, res) => {
       likesCount: user.likesCount,
       gallery: user.gallery,
       createdAt: user.createdAt,
+      gender: user.gender,
     }));
 
     res

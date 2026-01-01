@@ -6,11 +6,8 @@ import {
   updateProfile,
   forgotPassword,
   getStreamToken,
-  verifyEmail,
   resetPassword,
   deleteUser,
-  resendOtp,
-  googleSuccess,
   updateProfileName,
   completeProfile,
   updateBio,
@@ -22,22 +19,8 @@ import {
 } from "../controller/auth.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
-import passport from "passport";
 
 const route = express.Router();
-
-route.post("/complete-profile", completeProfile);
-
-route.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-route.get(
-  "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: "/signup" }),
-  googleSuccess
-);
 
 route.use(arcjetProtection);
 
@@ -49,9 +32,7 @@ route.get("/test", (req, res) => {
 
 route.post("/signup", signup);
 
-route.post("/verify-email", verifyEmail);
-
-route.post("/resend-otp", resendOtp);
+route.post("/complete-profile", protectedRoute, completeProfile);
 
 route.post("/login", login);
 

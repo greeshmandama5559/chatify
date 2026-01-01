@@ -2,18 +2,16 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    Email: {
+    fullName: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true,
       trim: true,
     },
 
-    fullName: {
+    gender: {
       type: String,
-      unique: true,
-      trim: true,
+      lowercase: true,
     },
 
     Password: {
@@ -94,6 +92,11 @@ const userSchema = new mongoose.Schema(
     },
 
     hasNewNotification: {
+      type: Boolean,
+      default: false,
+    },
+
+    profileCompleted: {
       type: Boolean,
       default: false,
     },

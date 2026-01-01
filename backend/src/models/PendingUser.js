@@ -5,14 +5,6 @@ const PendingUserSchema = new mongoose.Schema({
 
   fullName: { type: String, required: true, trim: true },
 
-  Email: {
-    type: String,
-    required: true,
-    lowercase: true,
-    trim: true,
-    index: true,
-  },
-
   Password: {
     type: String,
     minlength: 6,

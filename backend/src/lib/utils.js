@@ -10,7 +10,7 @@ const generateToken = (userId, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000, // in MS (7days)
     httpOnly: true,
     secure: ENV.NODE_ENV === "production", // true in prod, requires https
-    sameSite: "none",
+    sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
   });
 
   return token;

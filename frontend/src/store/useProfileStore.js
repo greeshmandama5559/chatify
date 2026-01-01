@@ -76,14 +76,14 @@ export const useProfileStore = create((set, get) => ({
         if (state.selectedprofileUser) {
           updates.selectedprofileUser = {
             ...state.selectedprofileUser,
-            likesCount: (state.selectedprofileUser.likesCount || 0) + 1,
+            likesCount: (state.selectedprofileUser?.likesCount || 0) + 1,
           };
         }
 
         if (state.selectedUser) {
           updates.selectedUser = {
             ...state.selectedUser,
-            likesCount: (state.selectedUser.likesCount || 0) + 1,
+            likesCount: (state.selectedUser?.likesCount || 0) + 1,
           };
         }
 
@@ -112,7 +112,7 @@ export const useProfileStore = create((set, get) => ({
           updates.selectedprofileUser = {
             ...state.selectedprofileUser,
             likesCount: Math.max(
-              (state.selectedprofileUser.likesCount || 1) - 1,
+              (state.selectedprofileUser?.likesCount || 1) - 1,
               0
             ),
           };
@@ -121,7 +121,7 @@ export const useProfileStore = create((set, get) => ({
         if (state.selectedUser) {
           updates.selectedUser = {
             ...state.selectedUser,
-            likesCount: Math.max((state.selectedUser.likesCount || 1) - 1, 0),
+            likesCount: Math.max((state.selectedUser?.likesCount || 1) - 1, 0),
           };
         }
 
@@ -277,13 +277,7 @@ export const useProfileStore = create((set, get) => ({
       useAuthStore.setState((state) => ({
         authUser: {
           ...state.authUser,
-          likesCount: (state.authUser.likesCount || 0) + 1,
-        },
-      }));
-
-      useAuthStore.setState((state) => ({
-        authUser: {
-          ...state.authUser,
+          likesCount: state.authUser.likesCount + 1,
           hasNewNotification: true,
         },
       }));
@@ -296,12 +290,6 @@ export const useProfileStore = create((set, get) => ({
         authUser: {
           ...state.authUser,
           likesCount: Math.max((state.authUser.likesCount || 1) - 1, 0),
-        },
-      }));
-
-      useAuthStore.setState((state) => ({
-        authUser: {
-          ...state.authUser,
           hasNewNotification: false,
         },
       }));

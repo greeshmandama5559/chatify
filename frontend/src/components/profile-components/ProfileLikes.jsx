@@ -7,17 +7,17 @@ const ProfileLikes = ({ authUser, likedUsers }) => {
   // Logic to handle display limits
   const displayLimit = 4;
   const visibleUsers = likedUsers.slice(0, displayLimit);
-  const remainingCount = authUser.likesCount - displayLimit;
+  const remainingCount = authUser?.likesCount - displayLimit;
 
   const navigate = useNavigate();
 
   return (
     <div className="relative">
       {/* Likes Text */}
-      <p className="text-md text-slate-400 mt-2">
+      <p className="text-md text-slate-400 mb-4">
         Your profile has{" "}
         <span className="text-cyan-400 font-semibold">
-          {authUser.likesCount} {authUser.likesCount === 1 ? "like" : "likes"}
+          {authUser?.likesCount} {authUser?.likesCount === 1 ? "like" : "likes"}
         </span>
       </p>
 
@@ -70,14 +70,14 @@ const ProfileLikes = ({ authUser, likedUsers }) => {
                 onClick={() => {
                     navigate(`/user-profile/${like.likedBy._id}`);
                 }}
-                className="flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-lg group cursor-pointer">
+                className="flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-lg cursor-pointer">
                   <img 
                     src={like.likedBy.profilePic} 
                     className="w-10 h-10 rounded-full" 
                     alt={like.likedBy.fullName} 
                   />
                   <div>
-                    <p className="text-white font-medium group-hover:text-cyan-400">{like.likedBy.fullName}</p>
+                    <p className="text-white font-medium hover:text-cyan-400">{like.likedBy.fullName}</p>
                     <p className="text-slate-500 text-sm">View Profile</p>
                   </div>
                 </div>

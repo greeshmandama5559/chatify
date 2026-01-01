@@ -128,17 +128,25 @@ function ProfilePage() {
       <main className="relative z-10 mx-auto pb-30 px-4 py-8 w-6xl overflow-y-auto scrollbar-hide">
         <div className="space-y-6">
           {/* PROFILE HEADER CARD */}
-          <section className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
-            <div className="flex flex-col items-center">
-              {/* Avatar section */}
+          <section className="relative group bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+            {/* Decorative Ambient Glows */}
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-cyan-500/10 blur-[80px] rounded-full" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full" />
+
+            <div className="flex flex-col items-center relative z-10">
+              {/* Avatar Section with Animated Ring */}
               <div className="relative group">
-                <div className="p-1 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600">
+                <div className="rounded-full">
                   <img
                     src={selectedImg || authUser?.profilePic || "/avatar.png"}
                     alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-[#08090a]"
+                    className="w-34 md:w-38 rounded-full object-cover border-0 border-[#08090a] cursor-pointer"
+                    onClick={() =>
+                      openImageModal(authUser?.profilePic)
+                    }
                   />
                 </div>
+
                 <button
                   onClick={() => fileInputRef.current.click()}
                   className="absolute bottom-1 right-1 bg-slate-800 hover:bg-slate-700 p-2.5 rounded-full border border-slate-700 transition-all shadow-lg"
@@ -146,9 +154,11 @@ function ProfilePage() {
                   <CameraIcon size={18} className="text-cyan-400" />
                 </button>
 
-                {/* <div className="absolute top-0 left-2 -rotate-40 opacity-90 rounded-full transition-all shadow-lg" >
-                  <img src="/ribbon.png" alt="" className="w-10 h-10" />
-                </div> */}
+                {authUser?.gender === "female" && (
+                  <div className="absolute top-0 left-2 -rotate-40 opacity-95 rounded-full transition-all shadow-lg">
+                    <img src="/ribbon.png" alt="" className="w-12 h-12" />
+                  </div>
+                )}
 
                 <input
                   type="file"
@@ -160,12 +170,14 @@ function ProfilePage() {
               </div>
 
               {/* Name & Email Section */}
+
               <div className="mt-6 text-center w-full">
                 {!isEditing ? (
                   <div className="flex items-center justify-center gap-2 group">
                     <h1 className="text-3xl font-bold tracking-tight text-white">
                       {authUser?.fullName || "Unnamed User"}
                     </h1>
+
                     <button
                       onClick={() => setIsEditing(true)}
                       className="opacity-100 p-1 ml-1 mt-2 text-slate-400 hover:text-cyan-400 transition"
@@ -182,6 +194,7 @@ function ProfilePage() {
                       onKeyDown={(e) => e.key === "Enter" && saveName()}
                       className="w-full bg-slate-800/50 border border-cyan-500/50 rounded-lg px-4 py-2 text-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                     />
+
                     <button
                       onClick={saveName}
                       disabled={isSaving}
@@ -193,9 +206,11 @@ function ProfilePage() {
                         <Check size={20} />
                       )}
                     </button>
+
                     <button
                       onClick={() => {
                         setEditingName(authUser.fullName);
+
                         setIsEditing(false);
                       }}
                       className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"
@@ -204,13 +219,13 @@ function ProfilePage() {
                     </button>
                   </div>
                 )}
-
-                <p className="flex items-center justify-center gap-2 text-slate-400 mt-2">
-                  <Mail size={14} />
-                  {authUser?.Email || "user@example.com"}
+                <p className="mt-2 text-slate-500 font-medium tracking-widest uppercase text-xs">
+                  Verified Member
                 </p>
               </div>
 
+              {/* Footer Section */}
+              <div className="mt-5 justify-center items-center w-full pt-8 border-t border-white/5"></div>
               <ProfileLikes authUser={authUser} likedUsers={likedUsers} />
             </div>
           </section>
