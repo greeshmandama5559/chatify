@@ -60,14 +60,14 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/signup", data);
 
-      const user = res.data;
+      localStorage.setItem("token", res.data.token);
+
+      const user = res.data.user;
 
       set({
         authUser: user,
         authStatus: getAuthStatus(user),
       });
-
-      console.log(user);
 
       return { success: true };
     } catch (error) {
@@ -99,7 +99,10 @@ export const useAuthStore = create((set, get) => ({
 
       return { success: true };
     } catch (error) {
-      console.log("error in complete profile: ", error?.response?.data?.message);
+      console.log(
+        "error in complete profile: ",
+        error?.response?.data?.message
+      );
       const message = error?.response?.data?.message || "Profile update failed";
       set({ error: message });
       return { success: false, error: message };
@@ -139,7 +142,9 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoggingIn: true });
     try {
       const res = await axiosInstance.post("/auth/login", data);
-      set({ authUser: res.data, isAuthenticated: true });
+
+      localStorage.setItem("token", res.data.token);
+      set({ authUser: res.data.user, isAuthenticated: true });
 
       get().connectSocket();
       return { success: true };
@@ -218,8 +223,8 @@ export const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await axiosInstance.post("/auth/logout");
-      set({ authUser: null, isAuthenticated: false });
+      localStorage.removeItem("token");
+      set({ authUser: null, isAuthenticated: false, authStatus: "guest" });
       get().disconnectSocket();
       toast.success("Logout successfull");
     } catch (error) {
@@ -231,7 +236,7 @@ export const useAuthStore = create((set, get) => ({
   isUpdatingProfile: false,
 
   updateProfilePic: async (profilePic) => {
-    set({isUpdatingProfile:true});
+    set({ isUpdatingProfile: true });
     try {
       const res = await axiosInstance.put("/auth/update-profile", profilePic);
       set({ authUser: res.data });
@@ -243,7 +248,7 @@ export const useAuthStore = create((set, get) => ({
       );
       toast.error("Failed to update profile");
     } finally {
-      set({isUpdatingProfile : false});
+      set({ isUpdatingProfile: false });
     }
   },
 
@@ -346,21 +351,19 @@ export const useAuthStore = create((set, get) => ({
     const { authUser, socket: existingSocket } = get();
 
     if (!authUser) return;
-
     if (existingSocket?.connected) return;
 
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     const socket = io(BASE_URL, {
-      withCredentials: true,
-      query: {
-        userId: authUser._id,
-      },
       auth: {
-        userId: authUser._id,
+        token,
       },
     });
 
     socket.on("connect", () => {
-      console.log("Connected");
+      console.log("Socket connected:", socket.id);
     });
 
     socket.on("getOnlineUsers", (userIds) => {

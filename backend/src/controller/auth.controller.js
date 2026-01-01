@@ -54,17 +54,14 @@ export const signup = async (req, res) => {
 
     const savedUser = await user.save();
 
-    generateToken(savedUser._id, res);
+    const token = generateToken(user._id);
 
-    return res.status(201).json({
-      _id: savedUser._id,
-      fullName: savedUser.fullName,
-      profilePic: savedUser.profilePic,
-      isVerified: savedUser.isVerified,
-      isActive: savedUser.isActive,
-      likesCount: savedUser.likesCount,
-      isSeenOn: savedUser.isSeenOn,
-      profileCompleted: savedUser.profileCompleted,
+    const userData = await User.findById(savedUser._id).select("-Password");
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: userData,
     });
   } catch (error) {
     console.error("Error during signup:", error);
@@ -93,23 +90,21 @@ export const login = async (req, res) => {
       });
     }
 
-    const isPasswordCorrect = await bcrypt.compare(Password, user.Password);
+    const isPasswordCorrect = bcrypt.compare(Password, user.Password);
     if (!isPasswordCorrect) {
       return res
         .status(400)
         .json({ Password: true, message: "Invalid Password" });
     }
 
-    generateToken(user._id, res);
+    const token = generateToken(user._id);
 
-    return res.status(200).json({
-      _id: user._id,
-      fullName: user.fullName,
-      profilePic: user.profilePic,
-      isVerified: user.isVerified,
-      isActive: user.isActive,
-      likesCount: user.likesCount,
-      isSeenOn: user.isSeenOn,
+    const userData = await User.findById(user._id).select("-Password");
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: userData,
     });
   } catch (error) {
     console.error("Error in login controller:", error);
@@ -245,10 +240,10 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const logout = async (_, res) => {
-  res.cookie("jwt", "", { maxAge: 0 });
-  res.status(200).json({ message: "logout successful" });
-};
+// export const logout = async (_, res) => {
+//   res.cookie("jwt", "", { maxAge: 0 });
+//   res.status(200).json({ message: "logout successful" });
+// };
 
 export const updateProfile = async (req, res) => {
   try {

@@ -2,7 +2,7 @@ import express from "express";
 import {
   signup,
   login,
-  logout,
+  // logout,
   updateProfile,
   forgotPassword,
   getStreamToken,
@@ -40,7 +40,7 @@ route.post("/forgot-password", forgotPassword);
 
 route.post("/reset-password/:token", resetPassword);
 
-route.post("/logout", logout);
+// route.post("/logout", logout);
 
 route.put("/update-profile", protectedRoute, updateProfile);
 
