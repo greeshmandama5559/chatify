@@ -10,8 +10,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [ENV.CLIENT_URL],
-    credentials: true,
+    origin: ENV.CLIENT_URL,
   },
   perMessageDeflate: {
     threshold: 1024, // only compress messages bigger than 1KB
