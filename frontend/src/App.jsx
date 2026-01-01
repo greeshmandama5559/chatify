@@ -59,6 +59,16 @@ function App() {
     useProfileStore();
 
   useEffect(() => {
+    const onBack = () => {
+      const { setSelectedUser } = useChatStore.getState();
+      setSelectedUser(null); // go back to chats
+    };
+
+    window.addEventListener("popstate", onBack);
+    return () => window.removeEventListener("popstate", onBack);
+  }, []);
+
+  useEffect(() => {
     checkAuth();
   }, [authStatus, checkAuth]);
 
@@ -203,10 +213,7 @@ function App() {
         {/* FULL ACCESS */}
         <Route
           path="/chats"
-          element={
-            isAuthenticated ?
-              <ChatPage /> : <ChatCreateProfile />
-          }
+          element={isAuthenticated ? <ChatPage /> : <ChatCreateProfile />}
         />
 
         <Route
@@ -229,17 +236,13 @@ function App() {
 
         <Route
           path="/profile"
-          element={
-            isAuthenticated ?
-              <ProfilePage /> : <ProfileCreateAccount />
-          }
+          element={isAuthenticated ? <ProfilePage /> : <ProfileCreateAccount />}
         />
 
         <Route
           path="/discover"
           element={
-            isAuthenticated ?
-              <DiscoverPage /> : <DiscoverCreateAccount />
+            isAuthenticated ? <DiscoverPage /> : <DiscoverCreateAccount />
           }
         />
 
