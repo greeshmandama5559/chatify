@@ -59,8 +59,6 @@ function App() {
     useProfileStore();
 
   useEffect(() => {
-    if (authStatus === "verified") return;
-
     checkAuth();
   }, [authStatus, checkAuth]);
 
