@@ -97,6 +97,8 @@ export const useAuthStore = create((set, get) => ({
         authStatus: getAuthStatus(user),
       });
 
+      get().checkAuth();
+
       return { success: true };
     } catch (error) {
       console.log(
@@ -144,7 +146,11 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.post("/auth/login", data);
 
       localStorage.setItem("token", res.data.token);
-      set({ authUser: res.data.user, isAuthenticated: true, authStatus: "ready" });
+      set({
+        authUser: res.data.user,
+        isAuthenticated: true,
+        authStatus: "ready",
+      });
 
       get().connectSocket();
       return { success: true };
@@ -239,8 +245,13 @@ export const useAuthStore = create((set, get) => ({
     set({ isUpdatingProfile: true });
     try {
       const res = await axiosInstance.put("/auth/update-profile", profilePic);
-      set({ authUser: res.data });
-      toast.success("Profile updated");
+      set((state) => ({
+        authUser: {
+          ...state.authUser,
+          profilePic: res.data.profilePic,
+        },
+      }));
+      // toast.success("Profile updated");
     } catch (error) {
       console.error(
         "Error in update profile: ",

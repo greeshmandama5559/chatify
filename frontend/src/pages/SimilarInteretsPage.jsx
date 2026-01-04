@@ -3,13 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import { ArrowLeft } from "lucide-react";
+import { useProfileStore } from "../store/useProfileStore";
 
 function SimilarInteretsPage() {
   const navigate = useNavigate();
 
   const { similarInteretsUsers } = useAuthStore();
 
-  const { setSelectedUser } = useChatStore();
+  const { setIsVisitingProfile } = useProfileStore();
+
+  const { setSelectedUser, getMessagesByUserId } = useChatStore();
 
   return (
     <div className="relative min-h-screen w-full bg-[#0a0a0c] text-slate-200 pb-28 pt-5 px-4 overflow-y-auto scrollbar-hide">
@@ -91,8 +94,22 @@ function SimilarInteretsPage() {
 
                   <button
                     onClick={() => {
+                      const contactId = contact._id;
+
                       setSelectedUser(contact);
-                      navigate(`/chats/${contact._id}`);
+
+                      setIsVisitingProfile(false);
+
+                      const cached =
+                        useChatStore.getState().messagesCache[contactId] || [];
+
+                      useChatStore.setState({
+                        chatMessages: cached,
+                      });
+
+                      getMessagesByUserId(contactId);
+
+                      navigate(`/chats/${contactId}`);
                     }}
                     className="flex-1 px-2 py-2 sm:px-4 text-[11px] sm:text-sm font-semibold rounded-xl sm:rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all"
                   >

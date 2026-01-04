@@ -23,6 +23,9 @@ import ChatCreateProfile from "./components/ChatCreateProfile";
 import LocationComponent from "./pages/Location";
 import ProfileCreateAccount from "./components/ProfileCreateAcount";
 import AvatarsPage from "./pages/AvatarsPage";
+import { getStreamToken } from "./store/api";
+import { useQuery } from "@tanstack/react-query";
+import { streamClient } from "./utils/StreamClient";
 
 const AuthGuard = ({ allow, children }) => {
   const { authStatus } = useAuthStore();
@@ -48,16 +51,18 @@ function App() {
   const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
 
   const {
-    selectedUser,
-    getMyChatPartners,
     hydrateFromServer,
     getAllContacts,
     getTrendingUsers,
+    getMessagesByUserId,
+    chats,
   } = useChatStore();
 
-  const { subscribeToLike, likeCheck, getMyLikes, getMyLikesForNotification } =
+  const { subscribeToLike, getMyLikes, getMyLikesForNotification } =
     useProfileStore();
 
+
+  //--------------on browser back button for chats----------------//
   useEffect(() => {
     const onBack = () => {
       const { setSelectedUser } = useChatStore.getState();
@@ -68,10 +73,19 @@ function App() {
     return () => window.removeEventListener("popstate", onBack);
   }, []);
 
+
+  //--------------Check authentication of user----------------//
   useEffect(() => {
     checkAuth();
-  }, [authStatus, checkAuth]);
+  }, [checkAuth]);
 
+
+  //--------------Get cache from localStorage----------------//
+  useEffect(() => {
+    useChatStore.getState().migrateDecryptCache();
+  }, []);
+
+  //--------------send message when new message is arrived----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!socket || !isAuthenticated || !authUser?.isVerified) return;
@@ -89,6 +103,8 @@ function App() {
     authStatus,
   ]);
 
+
+  //--------------Notifies when someone likes the profile----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!socket) return;
@@ -101,48 +117,64 @@ function App() {
     };
   }, [authStatus, socket, subscribeToLike]);
 
-  useEffect(() => {
-    if (authStatus !== "ready") return;
-    if (!isAuthenticated || !authUser?.isVerified) return;
 
-    const userId = selectedUser?._id;
-
-    if (userId) {
-      likeCheck(userId);
-    }
-  }, [
-    authStatus,
-    authUser?.isVerified,
-    isAuthenticated,
-    likeCheck,
-    selectedUser?._id,
-  ]);
-
+  //--------------Get chats----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     const hydrate = async () => {
-      await getMyChatPartners();
+      // await getMyChatPartners();
       await hydrateFromServer();
     };
 
     hydrate();
-  }, [
-    isAuthenticated,
-    authUser?.isVerified,
-    getMyChatPartners,
-    hydrateFromServer,
-    authStatus,
-  ]);
+  }, [isAuthenticated, authUser?.isVerified, authStatus, hydrateFromServer]);
 
+
+  //--------------Connect Video Call----------------//
+  const { data: tokenData } = useQuery({
+    queryKey: ["streamToken"],
+    queryFn: getStreamToken,
+    enabled: !!authUser,
+  });
+
+  useEffect(() => {
+    if (!authUser || !tokenData?.token || isAuthenticated) return;
+
+    if (streamClient.userID) return; // already connected
+
+    streamClient.connectUser(
+      {
+        id: authUser._id,
+        name: authUser.fullName,
+        image: authUser.profilePic,
+      },
+      tokenData.token
+    );
+
+    return () => {
+      streamClient.disconnectUser();
+    };
+  }, [authUser, isAuthenticated, tokenData]);
+
+
+  //--------------Get my Likes To show in profile page----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     getMyLikes();
-  }, [authStatus, authUser?.isVerified, getMyLikes, isAuthenticated]);
+  }, [
+    authStatus,
+    authUser?.isVerified,
+    getMyLikes,
+    authUser?.likesCount,
+    isAuthenticated,
+  ]);
 
+
+  //--------------Get Trending Users and get likes for notofication----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
@@ -160,6 +192,8 @@ function App() {
     isAuthenticated,
   ]);
 
+
+  //--------------Get Similar Interest Users----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
@@ -173,12 +207,41 @@ function App() {
     authStatus,
   ]);
 
+
+  //--------------get all users to show in discovery page and chats users tab----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
     if (!isAuthenticated || !authUser?.isVerified) return;
 
     getAllContacts();
   }, [authStatus, authUser?.isVerified, getAllContacts, isAuthenticated]);
+
+
+  //--------------Prefetch messages of top 10 users in chatsList----------------//
+  useEffect(() => {
+    if (authStatus !== "ready") return;
+    if (!isAuthenticated || !authUser?.isVerified) return;
+
+    const prefetchTopChats = async () => {
+      const topChats = chats.slice(0, 8);
+
+      await Promise.allSettled(
+        topChats.map((chat) => getMessagesByUserId(chat._id, { silent: true }))
+      );
+    };
+
+    if (chats.length > 0) {
+      prefetchTopChats();
+    }
+  }, [
+    authStatus,
+    authUser?.isVerified,
+    chats,
+    getMessagesByUserId,
+    isAuthenticated,
+  ]);
+
+  //--------------Main routing code----------------//
 
   if (isCheckingAuth) return <PageLoader />;
 
@@ -227,11 +290,7 @@ function App() {
 
         <Route
           path="/avatars"
-          element={
-            <AuthGuard allow={["ready"]}>
-              <AvatarsPage />
-            </AuthGuard>
-          }
+          element={isAuthenticated ? <AvatarsPage /> : <LoginPage />}
         />
 
         <Route
@@ -248,11 +307,7 @@ function App() {
 
         <Route
           path="/notifications"
-          element={
-            <AuthGuard allow={["ready"]}>
-              <NotificationPage />
-            </AuthGuard>
-          }
+          element={isAuthenticated ? <NotificationPage /> : <LoginPage />}
         />
 
         <Route

@@ -24,6 +24,7 @@ function SelectedUserProfile() {
     fetchUserById,
     setSelectedUser,
     isUserLoading,
+    getMessagesByUserId,
   } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const isOnline = onlineUsers.includes(selectedprofileUser?._id);
@@ -62,7 +63,7 @@ function SelectedUserProfile() {
 
   useEffect(() => {
     likeCheck(userId);
-  },[likeCheck, userId]);
+  }, [likeCheck, userId]);
 
   if (loading || isUserLoading || !selectedprofileUser)
     return <ProfileSkeleton />;
@@ -160,17 +161,29 @@ function SelectedUserProfile() {
                 <div className="flex justify-center items-center w-full gap-3">
                   <button
                     onClick={() => {
+                      const selectUserId = selectedprofileUser._id;
+
                       setSelectedUser(selectedprofileUser);
+
                       setIsVisitingProfile(false);
-                      navigate(`/chats/${selectedprofileUser._id}`);
+
+                      const cached =
+                        useChatStore.getState().messagesCache[selectUserId] || [];
+
+                      useChatStore.setState({
+                        chatMessages: cached,
+                      });
+
+                      getMessagesByUserId(selectUserId);
+
+                      navigate(`/chats/${selectUserId}`);
                     }}
                     className="flex-1 flex items-center justify-center gap-2 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-cyan-500/20 active:scale-95"
                   >
                     <MessageCircle size={20} /> Message
                   </button>
                   <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-center items-center gap-2">
-                    <span 
-                    className="z-100 w-full">
+                    <span className="z-100 w-full">
                       <LikeButton
                         liked={hasLiked}
                         onToggle={handleLike}

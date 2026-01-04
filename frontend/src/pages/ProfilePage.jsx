@@ -71,7 +71,6 @@ function ProfilePage() {
       try {
         setSelectedImg(reader.result);
         await updateProfilePic({ profilePic: reader.result });
-        toast.success("Profile photo updated");
       } catch {
         toast.error("Failed to update photo");
       }
@@ -136,14 +135,12 @@ function ProfilePage() {
             <div className="flex flex-col items-center relative z-10">
               {/* Avatar Section with Animated Ring */}
               <div className="relative group">
-                <div className="rounded-full">
+                <div className="w-36 h-36 md:w-40 md:h-40 rounded-full overflow-hidden">
                   <img
                     src={selectedImg || authUser?.profilePic || "/avatar.png"}
                     alt="Profile"
-                    className="w-34 md:w-38 rounded-full object-cover border-0 border-[#08090a] cursor-pointer"
-                    onClick={() =>
-                      openImageModal(authUser?.profilePic)
-                    }
+                    className="w-full h-full object-cover rounded-full cursor-pointer"
+                    onClick={() => openImageModal(authUser?.profilePic)}
                   />
                 </div>
 
@@ -155,7 +152,7 @@ function ProfilePage() {
                 </button>
 
                 {authUser?.gender === "female" && (
-                  <div className="absolute top-0 left-2 -rotate-40 opacity-95 rounded-full transition-all shadow-lg">
+                  <div className="absolute top-0 left-2 -rotate-40 opacity-95">
                     <img src="/ribbon.png" alt="" className="w-12 h-12" />
                   </div>
                 )}
@@ -243,12 +240,13 @@ function ProfilePage() {
               setOriginalInterests={setOriginalInterests}
             />
 
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Account Information Section */}
-              <div className="flex-1 gap">
-                <AccountInfoSection authUser={authUser} logout={logout} />
-              </div>
+            <ImageArea
+              modalOpen={modalOpen}
+              openImageModal={openImageModal}
+              setIsDeleting={setIsDeleting}
+            />
 
+            <div className="flex flex-col md:flex-row gap-8">
               {/* Account status Section */}
               <ActiveStatusSection
                 isActive={isActive}
@@ -256,14 +254,13 @@ function ProfilePage() {
                 setIsSeenOn={setIsSeenOn}
                 setIsActive={setIsActive}
               />
+
+              {/* Account Information Section */}
+              <div className="flex-1 gap">
+                <AccountInfoSection authUser={authUser} logout={logout} />
+              </div>
             </div>
           </div>
-
-          <ImageArea
-            modalOpen={modalOpen}
-            openImageModal={openImageModal}
-            setIsDeleting={setIsDeleting}
-          />
 
           <AnimatePresence>
             {modalOpen && modalSrc && !isDeleting && (

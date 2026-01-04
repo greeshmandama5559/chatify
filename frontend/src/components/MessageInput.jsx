@@ -285,7 +285,7 @@ function MessageInput() {
           <button
             type="submit"
             disabled={!text.trim() && !imagePreview}
-            className="p-3 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-700 text-white shadow-cyan-900/50 hover:from-cyan-500 hover:to-cyan-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            className="p-3 rounded-full bg-linear-to-r from-cyan-600 to-cyan-700 text-white shadow-cyan-900/50 hover:from-cyan-500 hover:to-cyan-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
             aria-label="Send message"
           >
             <SendIcon className="w-5 h-5" />

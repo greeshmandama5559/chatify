@@ -58,10 +58,7 @@ export const getTrendingUsers = async (req, res) => {
       gender: user.gender,
     }));
 
-    res
-      .status(200)
-      .json({ trendingUsers: filteredTrendingUsers });
-
+    res.status(200).json({ trendingUsers: filteredTrendingUsers });
   } catch (error) {
     console.error("Error in get trending users: " + error);
     res.status(500).json({ message: "internal server error" });
@@ -92,9 +89,7 @@ export const getAllContacts = async (req, res) => {
       gender: user.gender,
     }));
 
-    res
-      .status(200)
-      .json({ usersData: usersData });
+    res.status(200).json({ usersData: usersData });
   } catch (error) {
     console.error("Error in get all contacts: " + error);
     res.status(500).json({ message: "internal server error" });
@@ -103,11 +98,10 @@ export const getAllContacts = async (req, res) => {
 
 export const getMessagesByUserId = async (req, res) => {
   try {
-    const myId = req.user._id;
+    const myId = req.user?._id;
     const { id: userToChatId } = req.params;
 
-    if (!myId)
-      return res.status(401).json({ message: "Unauthorized: missing user" });
+    if (!myId) return res.status(401).json({ message: "Unauthorized" });
     if (!userToChatId)
       return res.status(400).json({ message: "Missing chat partner id" });
 
@@ -116,12 +110,15 @@ export const getMessagesByUserId = async (req, res) => {
         { senderId: myId, receiverId: userToChatId },
         { senderId: userToChatId, receiverId: myId },
       ],
-    });
+    })
+      .lean();
 
-    res.status(200).json(messages);
+    res.status(200).json({
+      messages: messages.reverse(),
+    });
   } catch (error) {
-    console.error("Error in get messages in message controller: " + error);
-    res.status(500).json({ message: "internal server error" });
+    console.error("Error in getMessagesByUserId:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -174,21 +171,24 @@ export const sendMessage = async (req, res) => {
     // emit to receiver
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
-      []
-        .concat(receiverSocketId)
-        .forEach((sid) =>
-          io
-            .to(sid)
-            .emit("newMessage", { ...payload, fullName: req.user.fullName, profilePic: req.user.profilePic })
-        );
+      [].concat(receiverSocketId).forEach((sid) =>
+        io.to(sid).emit("newMessage", {
+          ...payload,
+          fullName: req.user.fullName,
+          profilePic: req.user.profilePic,
+        })
+      );
     }
 
     // emit to sender (multi-device support)
     const senderSocketId = getReceiverSocketId(senderId);
     if (senderSocketId) {
-      []
-        .concat(senderSocketId)
-        .forEach((sid) => io.to(sid).emit("newMessage", {...payload, profilePic: receiverExists.profilePic}));
+      [].concat(senderSocketId).forEach((sid) =>
+        io.to(sid).emit("newMessage", {
+          ...payload,
+          profilePic: receiverExists.profilePic,
+        })
+      );
     }
 
     res.status(201).json(payload);

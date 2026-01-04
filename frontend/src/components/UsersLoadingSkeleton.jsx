@@ -1,4 +1,4 @@
-function UsersLoadingSkeleton({ size = 3 }) {
+function UsersLoadingSkeleton({ size = 5 }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: size }).map((_, index) => (
