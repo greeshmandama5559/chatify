@@ -26,6 +26,7 @@ import SideNavBar from "../components/SideNavBar";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
 import CompleteProfileCTA from "../components/CompleteProfile";
+import ProfileVerification from "../components/ProfileVerification";
 
 // Register GSAP Plugins
 gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
@@ -74,7 +75,7 @@ const cardVariants = {
 
 const Home = () => {
   const containerRef = useRef(null);
-  const { authUser, isAuthenticated } = useAuthStore();
+  const { authUser, isAuthenticated, authStatus } = useAuthStore();
   const userAuthenticated = isAuthenticated && authUser?.isVerified;
 
   // Smooth Scroll Handler
@@ -87,6 +88,7 @@ const Home = () => {
   };
 
   useEffect(() => {
+
     const ctx = gsap.context(() => {
       // Hero Entrance
       gsap.from(".hero-text", {
@@ -211,14 +213,29 @@ const Home = () => {
 
       {/* MAIN CONTENT CONTAINER */}
       <div className=" relative z-10 mx-auto max-w-7xl px-6 scrollbar-hide">
-        {/* HERO SECTION */}
+        {!authUser?.profileCompleted && authStatus !== "guest"  && <ProfileVerification />}
 
+        {/*Profile Complete Section*/}
+        {authUser?.profileCompleted &&
+          userAuthenticated &&
+          completion !== 100 && (
+            <CompleteProfileCTA
+              completion={completion}
+              profilePic={authUser?.profilePic}
+            />
+          )}
+
+        {/* HERO SECTION */}
         <section className="relative h-screen w-full flex flex-col items-center justify-center text-center">
           {/* 1. Floating Interest Icons (Decorative) */}
           <div className="absolute inset-0 pointer-events-none">
             <motion.div
               animate={{ y: [0, -20, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
               className="absolute top-[20%] left-[15%] text-cyan-500/40 rotate-12"
             >
               <Heart size={40} />
@@ -293,13 +310,6 @@ const Home = () => {
           <div className="absolute -z-10 w-[600px] h-[600px] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse" />
         </section>
 
-        {userAuthenticated && completion !== 100 && (
-          <CompleteProfileCTA
-            completion={completion}
-            profilePic={authUser?.profilePic}
-          />
-        )}
-
         {/* FEATURES SECTION */}
         <section id="features" className="py-20">
           <div className="text-center mb-16">
@@ -351,7 +361,7 @@ const Home = () => {
             </p>
             <div className="grid grid-cols-2 gap-8">
               <div>
-                <h4 className="text-3xl font-bold text-white">10M+</h4>
+                <h4 className="text-3xl font-bold text-white">some</h4>
                 <p className="text-cyan-500 text-sm">Active Users</p>
               </div>
               <div>

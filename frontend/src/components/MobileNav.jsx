@@ -23,9 +23,6 @@ const MobileNav = ({ navItems, handleNavigation, hasNewNotification, totalUnseen
           >
             {isActive && (
               <motion.div
-                layoutId="activeTabMobile"
-                className="absolute w-18 h-13 bg-cyan-600/10 rounded-2xl"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
             )}
 
@@ -44,7 +41,7 @@ const MobileNav = ({ navItems, handleNavigation, hasNewNotification, totalUnseen
               </span>
 
               {item.id === "notifications" && hasNewNotification && (
-                <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rose-500" />
+                <div className="absolute top-0 right-4 w-1.5 h-1.5 rounded-full bg-rose-500" />
               )}
 
               {item.id === "chats" && totalUnseen > 0 && (

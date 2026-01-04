@@ -1,7 +1,9 @@
 import { useAuthStore } from "../store/useAuthStore";
 import { useState } from "react";
-import { CheckCircle2, User, Camera, Sparkles } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import SideNavBar from "../components/SideNavBar";
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
 
 const maleAvatars = [
   "/maleAavatars/male1.jpg",
@@ -32,6 +34,9 @@ function AvatarsPage() {
   const { authUser, isUpdatingProfile, updateProfilePic } = useAuthStore();
   const [imagePreview, setImagePreview] = useState(authUser?.profilePic);
 
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalSrc, setModalSrc] = useState(null);
+
   const handleUpdate = async () => {
     if (!imagePreview) return;
     try {
@@ -39,6 +44,17 @@ function AvatarsPage() {
     } catch (error) {
       console.log("error in update profile avatar: ", error);
     }
+  };
+
+  const openImageModal = (src) => {
+    if (!src) return;
+    setModalSrc(src);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalSrc(null);
   };
 
   return (
@@ -62,12 +78,12 @@ function AvatarsPage() {
                       src={
                         imagePreview || authUser?.profilePic || "/avatar.png"
                       }
+                      onClick={() => {
+                        openImageModal(imagePreview || authUser?.profilePic);
+                      }}
                       alt="Current Avatar"
-                      className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 shadow-xl"
+                      className="w-32 h-32 md:w-40 md:h-40 rounded-full cursor-pointer object-cover border-4 shadow-xl"
                     />
-                    <div className="absolute bottom-2 right-2 bg-indigo-600 text-white p-2 rounded-full shadow-lg border-2">
-                      <Camera size={18} />
-                    </div>
                   </div>
                 </div>
 
@@ -136,6 +152,33 @@ function AvatarsPage() {
               </section>
             </div>
           </div>
+          <AnimatePresence>
+            {modalOpen && modalSrc && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 p-4 md:p-10 backdrop-blur-md"
+                onClick={closeModal}
+              >
+                <button
+                  className="absolute md:hidden top-20 right-5 text-white/60 hover:text-white transition-colors z-110"
+                  onClick={closeModal}
+                >
+                  <X size={36} />
+                </button>
+
+                <motion.img
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  src={modalSrc}
+                  className="max-w-70 max-h-[85vh] md:max-w-full md:max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

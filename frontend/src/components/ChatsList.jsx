@@ -5,11 +5,13 @@ import NoChatsFound from "./NoChatsFound";
 import { useAuthStore } from "../store/useAuthStore";
 import { useProfileStore } from "../store/useProfileStore";
 import { useNavigate } from "react-router-dom";
+import { formatTime } from "../utils/FormatTime";
 
 function ChatsList() {
   const {
     // getMyChatPartners,
     chats = [],
+    getMessagesByUserId,
     isUsersLoading,
     selectedUser,
     setSelectedUser,
@@ -25,14 +27,6 @@ function ChatsList() {
 
   const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   const hydrate = async () => {
-  //     await getMyChatPartners();
-  //     await hydrateFromServer();
-  //   };
-  //   hydrate();
-  // }, [getMyChatPartners, hydrateFromServer]);
-
   if (isUsersLoading) return <UsersLoadingSkeleton />;
   if (!Array.isArray(chats) || chats.length === 0) return <NoChatsFound />;
 
@@ -44,7 +38,7 @@ function ChatsList() {
   const onlineSet = new Set(onlineUsers.map(toId));
 
   return (
-    <div className="px-3 pb-4 space-y-1">
+    <div className="px-3 pb-4 space-y-1 mb-15 md:mb-0">
       {chats.filter(Boolean).map((chat) => {
         if (!chat || !chat._id) return null;
 
@@ -53,6 +47,9 @@ function ChatsList() {
         const isOnline = onlineSet.has(chatId);
         const isMeSender = toId(chat.lastMessageSender) === meId;
         const isTyping = !!typingStatuses?.[chatId];
+        const cached = useChatStore.getState().messagesCache[chatId] || [];
+        const lastMessage =
+          cached.length > 0 ? cached[cached.length - 1] : null;
 
         // Show typing if other user is typing, not the current user, and chat isn't currently selected.
         const showTyping = isTyping && !isSelected;
@@ -68,7 +65,6 @@ function ChatsList() {
         //   lastUnseenMessageId?.[chatId] &&
         //   lastUnseenMessageId[chatId] === chat.lastMessageId;
 
-
         // Prefer explicit plain text fields (store sets plainText). Fallback to lastMessageText.
         const previewValue =
           chat.type === "video_call"
@@ -79,11 +75,18 @@ function ChatsList() {
           <button
             key={chatId}
             onClick={() => {
-              if (!isSelected) {
-                setIsVisitingProfile(false);
-                setSelectedUser(chat);
-                navigate(`/chats/${chat._id}`)
-              }
+              setSelectedUser(chat);
+              setIsVisitingProfile(false);
+
+              // ✅ ALWAYS reset first
+              useChatStore.setState({
+                chatMessages: cached,
+              });
+
+              // Fetch fresh (cache-aware)
+              getMessagesByUserId(chatId, { silent: false });
+
+              navigate(`/chats/${chatId}`);
             }}
             aria-pressed={isSelected}
             className={`w-full p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group
@@ -131,7 +134,7 @@ function ChatsList() {
                 )}
               </div>
 
-              <p
+              <div
                 className={`text-xs truncate mt-0.5 flex items-center ${
                   isSelected
                     ? "text-cyan-200/60"
@@ -155,39 +158,88 @@ function ChatsList() {
                 {!showTyping && previewValue ? (
                   <>
                     {isMeSender && (
-                      <span
-                        className={
-                          isSelected ? "text-cyan-400/80" : "text-slate-400"
-                        }
-                      >
-                        You: <span className="truncate">{previewValue}</span>
-                      </span>
+                      <div className="flex items-center justify-between w-full gap-3 group">
+                        <div
+                          className={`flex items-baseline gap-1.5 min-w-0 ${
+                            isSelected ? "text-cyan-100" : "text-slate-400"
+                          }`}
+                        >
+                          {/* Label */}
+                          <span className="text-[11px] font-bold tracking-wider text-slate-300 opacity-90 shrink-0">
+                            You:
+                          </span>
+
+                          {/* Message & Time Container */}
+                          <div className="flex items-baseline gap-2 min-w-0 overflow-hidden">
+                            <span
+                              className={`truncate text-sm ${
+                                isSelected ? "text-white" : "text-slate-400"
+                              }`}
+                            >
+                              {previewValue}
+                            </span>
+                            <span className="text-[10px] opacity-80 whitespace-nowrap">
+                              {formatTime(chat.lastMessageTime)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status Icon Logic */}
+                        {chat?.isSeenOn && authUser?.isSeenOn && !isSelected && (
+                          <div className="shrink-0 flex items-center">
+                            {lastMessage?.seen ? (
+                              <span className="text-cyan-400 text-xs font-bold leading-none">
+                                ✓✓
+                              </span>
+                            ) : (
+                              <span className="text-slate-500 text-[15px] leading-none">
+                                ✓
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {!isMeSender && (
-                      <span
-                        className={`flex-1 truncate inline-flex items-center gap-2 ${
-                          isSelected
-                            ? "text-cyan-400/80"
-                            : hasUnseen
-                            ? "text-cyan-200 font-semibold"
-                            : "text-slate-400"
-                        }`}
+                      <div
+                        className={`flex items-center justify-between w-full gap-2 py-0.5`}
                       >
-                        {/* Use hasUnseen instead of lastUnseenMessageId */}
+                        <div
+                          className={`flex-1 truncate inline-flex items-center gap-2.5 ${
+                            isSelected
+                              ? "text-cyan-400/90"
+                              : hasUnseen
+                              ? "text-white font-medium"
+                              : "text-slate-400"
+                          }`}
+                        >
+                          {/* Indicator Bar */}
+                          {hasUnseen && (
+                            <span
+                              aria-hidden
+                              className="inline-block w-1 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)] shrink-0"
+                            />
+                          )}
+
+                          {/* Message Content */}
+                          <span className="truncate text-sm">
+                            {previewValue}
+                          </span>
+
+                          {/* Time - Styled subtly */}
+                          <span className="text-[10px] opacity-80 mt-1 whitespace-nowrap">
+                            {formatTime(chat.lastMessageTime)}
+                          </span>
+                        </div>
+
+                        {/* "New" Badge */}
                         {hasUnseen && (
-                          <span
-                            aria-hidden
-                            className="inline-block w-1 h-4 rounded-full bg-cyan-400 shrink-0"
-                          />
-                        )}
-                        <span className="truncate">{previewValue}</span>
-                        {hasUnseen && (
-                          <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500 text-black">
+                          <span className="ml-2 mr-10 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500 text-black">
                             new
                           </span>
                         )}
-                      </span>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -197,7 +249,7 @@ function ChatsList() {
                     </span>
                   )
                 )}
-              </p>
+              </div>
             </div>
           </button>
         );

@@ -24,6 +24,7 @@ function SelectedUserChatProfile() {
     loading,
     setIsVisitingProfile,
     isVisitingProfile,
+    likeCheck,
   } = useProfileStore();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,6 +39,17 @@ function SelectedUserChatProfile() {
     window.addEventListener("keydown", handleEscKey);
     return () => window.removeEventListener("keydown", handleEscKey);
   }, [isVisitingProfile, setIsVisitingProfile]);
+
+  useEffect(() => {
+    const userId = selectedUser?._id;
+
+    if (userId) {
+      likeCheck(userId);
+    }
+  }, [
+    likeCheck,
+    selectedUser?._id,
+  ]);
 
   useEffect(() => {
     if (!isVisitingProfile && !selectedUser) {

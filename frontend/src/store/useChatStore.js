@@ -78,7 +78,7 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get(`auth/find-user/${userId}`);
       if (res?.data?.success) {
-        set({selectedprofileUser: res.data.selectedUser});
+        set({ selectedprofileUser: res.data.selectedUser });
         return res.data.selectedUser;
       }
       return null;
@@ -140,7 +140,6 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/trending-users");
 
       set({ TopLikedUsers: res.data.trendingUsers });
-
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to load contacts");
     } finally {
@@ -237,27 +236,43 @@ export const useChatStore = create((set, get) => ({
     get().hydrateUnseenCounts(data);
   },
 
-  // --------------------- LOAD MESSAGES ---------------------
-  getMessagesByUserId: async (userId) => {
-    set({ isMessagesLoading: true });
+  openChat: (userId) => {
+    const cached = get().messagesCache[userId];
 
+    set({
+      messages: cached ?? [],
+    });
+
+    get().getMessagesByUserId(userId, 1);
+  },
+
+  chatMessages: [],
+
+  // --------------------- LOAD MESSAGES ---------------------
+  getMessagesByUserId: async (userId, { silent = false } = {}) => {
+    const state = get();
+    const isActiveChat = state.selectedUser?._id === userId;
+    const cached = state.messagesCache[userId] || [];
     try {
-      const cached = get().messagesCache[userId];
-      if (cached && cached.length > 0) {
-        set({ messages: cached });
-      } else {
-        set({ messages: [] });
+      if (!silent && isActiveChat && cached.length === 0) {
+        set({ isMessagesLoading: true });
+      }
+
+      if (cached.length > 0) {
+        if (!silent && isActiveChat) {
+          set({ chatMessages: cached });
+        }
+
+        if (silent) return;
       }
 
       const res = await axiosInstance(`/messages/${userId}`);
-      let serverMessages = res.data || [];
-
-      // Normalize server messages: ensure cipherText and try to populate plainText
+      const serverMessages = res.data.messages || [];
       const decrypt = useCryptoStore.getState().decryptMessage;
       const normalized = await Promise.all(
         serverMessages.map(async (m) => {
           const msg = { ...m };
-          msg.cipherText = msg.text ?? null; // server uses `text` for ciphertext
+          msg.cipherText = msg.text ?? null;
           try {
             if (msg.type !== "video_call") {
               msg.plainText =
@@ -265,32 +280,25 @@ export const useChatStore = create((set, get) => ({
             } else {
               msg.plainText = msg.text ?? msg.cipherText;
             }
-          } catch (e) {
-            console.log("error in get message:", e);
+          } catch {
             msg.plainText = msg.plainText || "";
           }
           return msg;
         })
       );
-
-      serverMessages = normalized;
-
-      const merged = mergeMessages(cached || [], serverMessages);
-
-      // store in-memory
-      const newCache = { ...get().messagesCache, [userId]: merged };
-      set({ messagesCache: newCache, messages: merged });
-
-      // persist
+      const merged = mergeMessages(cached, normalized);
+      set({ messagesCache: { ...get().messagesCache, [userId]: merged } });
       get()._persistCacheToStorage();
-
-      // since user opened the chat, mark seen
-      get().markChatAsSeen(userId);
+      if (!silent && isActiveChat) {
+        set({ messages: merged });
+        get().markChatAsSeen(userId);
+      }
     } catch (error) {
-      console.error("Failed to load messages:", error);
-      toast.error(error?.response?.data?.message || "Failed to load messages");
+      console.error("Failed to load messages:", error?.response?.data?.message);
     } finally {
-      set({ isMessagesLoading: false });
+      if (!silent && isActiveChat) {
+        set({ isMessagesLoading: false });
+      }
     }
   },
 
@@ -352,6 +360,8 @@ export const useChatStore = create((set, get) => ({
     // Add optimistic message to the current live state (use get() to avoid stale writes)
     set((state) => ({
       messages: [...(state.messages || []), optimisticMessage],
+
+      chatMessages: [...(state.chatMessages || []), optimisticMessage],
       // update cache too
       messagesCache: {
         ...(state.messagesCache || {}),
@@ -511,28 +521,22 @@ export const useChatStore = create((set, get) => ({
         const cache = { ...(state.messagesCache || {}) };
         const list = Array.isArray(cache[selectedId]) ? cache[selectedId] : [];
 
-        const replacedList = list.map((m) => {
-          if (m._id === tempId) {
-            const merged = {
-              ...m, // optimistic message in cache (includes plainText)
-              ...serverMsg, // server truth overrides
-              isOptimistic: false,
-            };
-            if (merged._id) merged._id = String(merged._id);
-            return merged;
-          }
-          return m;
-        });
-
-        const hasServerInList = replacedList.some(
+        // 🔒 HARD DEDUPE BY SERVER _id
+        const alreadyExists = list.some(
           (m) => String(m._id) === String(serverMsg._id)
         );
 
-        const finalList = hasServerInList
-          ? replacedList
-          : [...replacedList, serverMsg].slice(-200);
+        if (alreadyExists) return {};
 
-        cache[selectedId] = finalList;
+        // Replace temp if exists
+        const replaced = list.map((m) =>
+          m._id === tempId ? { ...serverMsg, isOptimistic: false } : m
+        );
+
+        cache[selectedId] = replaced.some((m) => m._id === serverMsg._id)
+          ? replaced
+          : [...replaced, serverMsg].slice(-200);
+
         return { messagesCache: cache };
       });
 
@@ -685,8 +689,25 @@ export const useChatStore = create((set, get) => ({
   },
 
   markMessagesAsSeenLocal: (partnerId) => {
+    set((state) => {
+      const cache = { ...state.messagesCache };
+      const list = cache[partnerId] || [];
+
+      cache[partnerId] = list.map((msg) =>
+        msg.senderId === partnerId && !msg.seen ? { ...msg, seen: true } : msg
+      );
+
+      return { messagesCache: cache };
+    });
+
     set((state) => ({
-      messages: state.messages.map((msg) =>
+      chatMessages: state.chatMessages.map((msg) =>
+        msg.senderId === partnerId && !msg.seen ? { ...msg, seen: true } : msg
+      ),
+    }));
+
+    set((state) => ({
+      chatMessages: state.chatMessages.map((msg) =>
         msg.senderId === partnerId && !msg.seen ? { ...msg, seen: true } : msg
       ),
     }));
@@ -694,6 +715,27 @@ export const useChatStore = create((set, get) => ({
 
   markSentMessagesSeenLocal: (partnerId) => {
     const myId = useAuthStore.getState().authUser?._id;
+
+    set((state) => {
+      const cache = { ...state.messagesCache };
+      const list = cache[partnerId] || [];
+
+      cache[partnerId] = list.map((msg) =>
+        msg.senderId === myId && msg.receiverId === partnerId && !msg.seen
+          ? { ...msg, seen: true }
+          : msg
+      );
+
+      return { messagesCache: cache };
+    });
+
+    set((state) => ({
+      chatMessages: state.chatMessages.map((msg) =>
+        msg.senderId === myId && msg.receiverId === partnerId && !msg.seen
+          ? { ...msg, seen: true }
+          : msg
+      ),
+    }));
 
     set((state) => ({
       messages: state.messages.map((msg) =>
@@ -725,7 +767,6 @@ export const useChatStore = create((set, get) => ({
     const onNewMessage = (incoming) => {
       (async () => {
         try {
-
           const newMessage = { ...incoming };
 
           // Normalize server message: cipherText is server.text
@@ -750,6 +791,7 @@ export const useChatStore = create((set, get) => ({
 
           // ignore duplicates
           if (
+            get().chatMessages.some((m) => String(m._id) === String(newMessage._id)) ||
             get().messages.some((m) => String(m._id) === String(newMessage._id))
           )
             return;
@@ -793,6 +835,8 @@ export const useChatStore = create((set, get) => ({
           }
 
           if (isIncoming && isChatOpen) {
+            set({ chatMessages: [...get().chatMessages, newMessage] });
+
             set({ messages: [...get().messages, newMessage] });
 
             if (get().unseenCounts[partnerId] > 0) {
@@ -801,6 +845,17 @@ export const useChatStore = create((set, get) => ({
           }
 
           const newCacheForUser = [...prevCache, newMessage].slice(-200);
+
+          if (newMessage.senderId === authUser._id) return;
+
+          const list = get().messagesCache[partnerId] || [];
+
+          const exists = list.some(
+            (m) => String(m._id) === String(newMessage._id)
+          );
+
+          if (exists) return;
+
           set({
             messagesCache: {
               ...get().messagesCache,

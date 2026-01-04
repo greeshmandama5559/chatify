@@ -266,7 +266,7 @@ export const updateProfile = async (req, res) => {
       new: true,
     }).select("-Password");
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({ profilePic: updatedUser.profilePic });
   } catch (error) {
     console.error("error in updating profile: ", error);
     if (!res.headersSent) {

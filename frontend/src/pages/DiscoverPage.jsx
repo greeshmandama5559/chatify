@@ -9,9 +9,11 @@ import SimilarInterestsComponent from "../components/SimilarInterestsComponent";
 import TopLikedUsers from "../components/TopLikedUsers";
 
 function DiscoverPage() {
-  const { allContacts, setSelectedUser, setProfileUser } = useChatStore();
+  const { allContacts, setSelectedUser, setProfileUser, getMessagesByUserId } =
+    useChatStore();
 
-  const { searchedUsers, query, searchUsersLoading } = useProfileStore();
+  const { searchedUsers, query, searchUsersLoading, setIsVisitingProfile } =
+    useProfileStore();
 
   const navigate = useNavigate();
 
@@ -76,9 +78,11 @@ function DiscoverPage() {
                     </h2>
 
                     {contact.bio ? (
-                      <p className="text-slate-400 text-sm mt-2 line-clamp-2 leading-relaxed h-10">
-                        {contact.bio}
-                      </p>
+                      <div className="w-full px-10">
+                        <p className="text-slate-400 mb-4 mt-2 text-sm truncate">
+                          {contact.bio}
+                        </p>
+                      </div>
                     ) : (
                       <p className="text-slate-400 text-sm mt-2 italic h-10">
                         Just Exploring
@@ -100,8 +104,25 @@ function DiscoverPage() {
 
                     <button
                       onClick={() => {
+                        const contactId = contact._id;
+
                         setSelectedUser(contact);
-                        navigate(`/chats/${contact._id}`);
+
+                        setIsVisitingProfile(false);
+
+                        const cached =
+                          useChatStore.getState().messagesCache[contactId] ||
+                          [];
+
+                        // ✅ ALWAYS reset first
+                        useChatStore.setState({
+                          chatMessages: cached,
+                        });
+
+                        // Fetch fresh (cache-aware)
+                        getMessagesByUserId(contactId);
+
+                        navigate(`/chats/${contactId}`);
                       }}
                       className="flex-1 px-4 py-2 text-sm font-semibold rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all"
                     >

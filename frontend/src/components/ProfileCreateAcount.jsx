@@ -17,7 +17,6 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
-
 const avatars = [
   "/maleAavatars/male1.jpg",
   "/maleAavatars/male4.jpg",
@@ -111,7 +110,7 @@ const ProfileCreateAccount = () => {
         </div>
 
         {/* Right Side: The Form Card */}
-        <div className="relative">
+        <div className="relative mt-5">
           {/* Glass Card */}
           <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl relative z-10">
             <h2 className="text-2xl font-bold text-white mb-2">
@@ -208,6 +207,24 @@ const ProfileCreateAccount = () => {
                 )}
               </button>
             </form>
+
+            <div className="mt-8 flex items-center w-full opacity-50">
+              <div className="grow border-t border-slate-700"></div>
+              <span className="px-4 text-slate-500 text-xs font-bold tracking-widest">
+                OR
+              </span>
+              <div className="grow border-t border-slate-700"></div>
+            </div>
+
+            <p className="mt-5 text-center text-sm text-slate-500">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="text-indigo-400 font-bold hover:text-indigo-300 hover:underline transition-all"
+              >
+                Log in
+              </Link>
+            </p>
 
             <div className="mt-8 flex justify-center space-x-6">
               <div className="flex -space-x-2">

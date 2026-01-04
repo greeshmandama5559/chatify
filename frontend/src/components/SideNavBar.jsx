@@ -181,3 +181,46 @@ const SideNavBar = () => {
 };
 
 export default SideNavBar;
+
+
+
+  // const handleIntersect = async (entries) => {
+  //   console.log("function");
+  //   if (!entries[0].isIntersecting) return;
+  //   if (loadingRef.current) return;
+
+  //   const container = chatRef.current;
+  //   if (!container) return;
+
+  //   console.log(hasMore, "hasmore");
+
+  //   // 🔑 If already at absolute top → do NOT fetch
+  //   if (container.scrollTop === 0 && !hasMore) return;
+
+  //   loadingRef.current = true;
+
+  //   setPage((prevPage) => {
+  //     const nextPage = prevPage + 1;
+
+  //     getMessagesByUserId(selectedUser._id, nextPage).finally(() => {
+  //       loadingRef.current = false;
+  //     });
+
+  //     return nextPage;
+  //   });
+  // };
+
+  // useEffect(() => {
+  //   if (!selectedUser?._id) return;
+
+  //   const observer = new IntersectionObserver(handleIntersect, {
+  //     threshold: 0.1,
+  //   });
+
+  //   if (topObserverRef.current) {
+  //     observer.observe(topObserverRef.current);
+  //   }
+
+  //   return () => observer.disconnect();
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [selectedUser?._id]);

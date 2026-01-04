@@ -4,13 +4,16 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import NoMatchedUsers from "./NoMatchedUsers";
 import AddInterestsCard from "./AddInterests";
+import { useProfileStore } from "../store/useProfileStore";
 
 function SimilarInterestsComponent() {
   const navigate = useNavigate();
 
   const { similarInteretsUsers, authUser } = useAuthStore();
 
-  const { setSelectedUser } = useChatStore();
+  const { setIsVisitingProfile } = useProfileStore();
+
+  const { setSelectedUser, getMessagesByUserId } = useChatStore();
 
   return (
     <div>
@@ -97,8 +100,22 @@ function SimilarInterestsComponent() {
 
                   <button
                     onClick={() => {
+                      const contactId = contact._id;
+
                       setSelectedUser(contact);
-                      navigate(`/chats/${contact._id}`);
+
+                      setIsVisitingProfile(false);
+
+                      const cached =
+                        useChatStore.getState().messagesCache[contactId] || [];
+
+                      useChatStore.setState({
+                        chatMessages: cached,
+                      });
+
+                      getMessagesByUserId(contactId);
+
+                      navigate(`/chats/${contactId}`);
                     }}
                     className="flex-1 px-4 py-2 text-sm font-semibold rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all"
                   >

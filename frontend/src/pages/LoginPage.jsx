@@ -52,7 +52,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="w-full h-full overflow-hidden flex items-center justify-center p-4 md:p-10 bg-slate-900">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#020617] relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 blur-[120px] rounded-full" />
@@ -139,18 +139,9 @@ function LoginPage() {
                           />
                         )}
                       </div>
-                      {errors?.Password ? (
+                      {errors?.Password && (
                         <div className="flex items-center gap-1 text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1">
                           <AlertCircle className="w-3 h-3" /> {errors.Password}
-                        </div>
-                      ) : (
-                        <div className="flex items-center mt-1">
-                          <span
-                            className="text-cyan-400 hover:underline cursor-pointer"
-                            onClick={() => setIsChangingPassword(true)}
-                          >
-                            Forgot Password?
-                          </span>
                         </div>
                       )}
                     </div>
@@ -182,7 +173,9 @@ function LoginPage() {
             )}
 
             {isChangingPassword && (
-              <PasswordChange setIsChangingPassword={setIsChangingPassword} />
+              <div className="md:w-1/2 px-10 py-10 md:py-8 md:px-15 items-center justify-center md:border-r border-slate-600/30">
+                <PasswordChange setIsChangingPassword={setIsChangingPassword} />
+              </div>
             )}
 
             <div className="hidden md:w-1/2 md:flex items-center justify-center p-10 bg-linear-to-bl from-slate-800/20 to-transparent">

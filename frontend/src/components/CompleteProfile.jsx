@@ -3,70 +3,101 @@ import { motion } from "framer-motion";
 import { UserCircle, Zap, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const CompleteProfileCTA = ({ profilePic, completion }) => {
+const CompleteProfileCTA = ({ profilePic, completion = 0 }) => {
   const navigate = useNavigate();
 
+  // Animation variants for the list items
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.3 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0 },
+  };
+
   return (
-    <section className="relative w-full py-20 px-6 flex justify-center">
-      {/* Background Decorative Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-64 bg-purple-600/10 blur-[100px] -z-10" />
+    <section className="relative w-full mt-10 md:mt-20 py-12 md:py-20 px-4 md:px-6 flex justify-center overflow-hidden">
+      {/* Background Decorative Glow - Optimized for mobile */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-48 md:h-64 blur-[80px] md:blur-[100px] -z-10" />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8 }}
-        className="relative w-full max-w-5xl overflow-hidden rounded-[3rem] border border-white/10 bg-slate-900/40 backdrop-blur-xl p-8 md:p-12 shadow-2xl"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="
+          relative
+          w-screen md:w-full
+          -mx-4 md:mx-0
+          overflow-hidden
+          rounded-none md:rounded-[3rem]
+          backdrop-blur-2xl
+          p-6 md:p-14
+          shadow-none md:shadow-2xl
+        "
       >
         {/* Animated Corner Gradient */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-cyan-500/20 to-transparent" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-bl from-cyan-500/20 to-transparent hidden md:block" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Side: Content */}
-          <div className="space-y-6 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-wider">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-12 items-center">
+          {/* Content Side: Centered on mobile, Left-aligned on desktop */}
+          <div className="space-y-6 text-center lg:text-left order-2 lg:order-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] md:text-xs font-bold uppercase tracking-widest">
               <Zap size={14} className="fill-current" /> Identity
             </div>
 
-            <h2 className="text-3xl md:text-5xl font-black text-white leading-tight">
-              Ready to <br />
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-blue-500">
+            <h2 className="text-3xl md:text-5xl font-black text-white leading-[1.1]">
+              Ready to <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-400 via-blue-400 to-purple-500">
                 Be Found?
               </span>
             </h2>
 
-            <p className="text-slate-400 text-lg leading-relaxed max-w-md">
+            <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-md mx-auto lg:mx-0">
               Your profile is your digital aura. Complete it to unlock AI
               matches that truly resonate with your soul.
             </p>
 
-            <ul className="space-y-3">
+            <motion.ul
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="space-y-3 inline-block text-left"
+            >
               {[
                 "Upload a high-vibe profile picture",
                 "Share your unique interests",
                 "Write a bio that sparks conversation",
               ].map((text, i) => (
-                <li
+                <motion.li
                   key={i}
-                  className="flex items-center gap-3 text-slate-300 text-sm"
+                  variants={itemVariants}
+                  className="flex items-center gap-3 text-slate-300 text-sm md:text-base"
                 >
-                  <CheckCircle2 size={18} className="text-emerald-400" />
+                  <div className="shrink-0">
+                    <CheckCircle2 size={18} className="text-cyan-400" />
+                  </div>
                   {text}
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
           </div>
 
-          {/* Right Side: Visual & Button */}
-          <div className="relative flex flex-col items-center justify-center space-y-8">
-            {/* Visual Profile Mockup */}
+          {/* Visual Side: Visual pops more on mobile */}
+          <div className="relative mt-8 md:mt-0 flex flex-col items-center justify-center space-y-8 order-1 lg:order-2">
             <div className="relative group">
-              {/* Outer Glow */}
-              <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-purple-600 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+              {/* Pulsing Outer Glow */}
+              <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-purple-600 rounded-full blur-2xl opacity-20 group-hover:opacity-50 transition-opacity duration-700 animate-pulse" />
 
-              {/* Outer Circle */}
-              <div className="relative flex justify-center items-center w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-dashed border-slate-700 p-2 group-hover:border-cyan-500/50 transition-colors duration-500">
-                {/* Inner Avatar */}
-                <div className="w-full h-full md:w-full md:h-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden ring-4 ring-slate-700/50 group-hover:ring-cyan-400/30 transition-all duration-500">
+              {/* Avatar Ring */}
+              <div className="relative flex justify-center items-center w-44 h-44 md:w-60 md:h-60 rounded-full border-2 border-dashed border-slate-700 p-2 group-hover:border-cyan-500/50 transition-colors duration-700">
+                <div className="w-full h-full rounded-full bg-slate-800/80 flex items-center justify-center overflow-hidden ring-4 ring-slate-800 group-hover:ring-cyan-400/20 transition-all duration-700 shadow-inner">
                   {profilePic ? (
                     <img
                       src={profilePic}
@@ -75,33 +106,50 @@ const CompleteProfileCTA = ({ profilePic, completion }) => {
                     />
                   ) : (
                     <UserCircle
-                      size={80}
-                      className="text-slate-600 group-hover:text-cyan-400 transition-colors duration-500"
+                      size={100}
+                      strokeWidth={1}
+                      className="text-slate-600 group-hover:text-cyan-400 transition-colors duration-700"
                     />
                   )}
                 </div>
 
-                {/* Floating Badge */}
-                {/* Example: dynamic completion percentage */}
-                <motion.div className="absolute -top-2 -right-2 bg-white text-slate-900 px-4 py-2 rounded-2xl font-black text-sm shadow-xl">
+                {/* Floating Completion Badge */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 20,
+                    delay: 0.5,
+                  }}
+                  className="absolute -top-1 -right-1 md:top-2 md:right-2 bg-linear-to-br from-white to-slate-200 text-slate-900 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl font-black text-[10px] md:text-sm shadow-xl flex items-center gap-1.5 border border-white"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                  </span>
                   {completion}% Complete
                 </motion.div>
               </div>
             </div>
 
-            {/* Main Action Button */}
-            <button className="group relative w-full max-w-sm overflow-hidden rounded-2xl p-px transition-transform active:scale-95">
-              {/* Animated Border */}
-              <div className="absolute inset-0 bg-linear-to-r from-cyan-500 via-blue-600 to-purple-600 animate-[gradient_3s_linear_infinite]" />
+            {/* Main Action Button - Full width on mobile */}
+            <button
+              onClick={() => navigate("/profile")}
+              className="group relative w-full max-w-60 md:max-w-sm overflow-hidden rounded-2xl p-px transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-cyan-500/10"
+            >
+              {/* Glowing Gradient Border */}
+              <div className="absolute inset-0 bg-linear-to-r from-cyan-400 via-blue-500 to-purple-600 animate-[gradient_3s_linear_infinite]" />
 
-              <div
-                onClick={() => navigate("/profile")}
-                className="relative flex items-center justify-center gap-3 bg-slate-900 px-8 py-5 rounded-2xl group-hover:bg-slate-900/80 transition-colors"
-              >
-                <span className="text-white font-bold text-lg">
+              <div className="relative flex items-center justify-center gap-3 bg-slate-950 px-6 py-4 md:py-5 rounded-2xl group-hover:bg-transparent transition-colors duration-300">
+                <span className="text-white font-bold text-base md:text-lg">
                   Complete My Profile
                 </span>
-                <ArrowRight className="text-cyan-400 group-hover:translate-x-2 transition-transform" />
+                <ArrowRight
+                  size={20}
+                  className="text-cyan-400 group-hover:text-white group-hover:translate-x-1 transition-all"
+                />
               </div>
             </button>
           </div>

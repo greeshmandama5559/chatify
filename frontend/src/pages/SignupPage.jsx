@@ -66,9 +66,9 @@ function SignUpPage() {
             {/* Left Side: Form */}
             <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
               <div className="w-full max-w-md mx-auto">
-                <div className="mb-10">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-cyan-500/10 mb-6 border border-cyan-500/20">
-                    <MessageCircleIcon className="w-8 h-8 text-cyan-400" />
+                <div className="mb-10 w-full flex justify-center items-center flex-col text-center">
+                  <div className="inline-flex items-center justify-center w-14 h-14">
+                    <MessageCircleIcon className="w-12 h-12 text-slate-400" />
                   </div>
                   <h2 className="text-3xl font-bold text-white tracking-tight">
                     Create Account

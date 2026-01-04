@@ -24,7 +24,7 @@ function ContactList() {
   if (isUsersLoading) return <UsersLoadingSkeleton size={5} />;
 
   return (
-    <div className="px-3 pb-4 space-y-1">
+    <div className="px-3 pb-4 space-y-1 mb-15 md:mb-0">
       {allContacts.map((contact) => {
         const isSelected = selectedUser?._id === contact._id;
         const isOnline = onlineUsers.includes(contact._id);

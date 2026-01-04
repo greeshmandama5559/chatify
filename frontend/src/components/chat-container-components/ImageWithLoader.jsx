@@ -24,7 +24,7 @@ function ImageWithLoader({
     <div className="relative w-full group">
       {/* Overlay loader */}
       {(loading || isOptimistic || isDataUrl) && (
-        <div className="absolute inset-0 z-10 flex flex-col max-w-30 max-h-40 items-center justify-center gap-2 bg-black/30 rounded-xl">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/30 rounded-xl">
           <div className="flex items-center justify-center bg-black/40 rounded-full p-2">
             <LoaderCircle size={20} className="animate-spin" />
           </div>
