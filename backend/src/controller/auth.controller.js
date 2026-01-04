@@ -74,6 +74,8 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { fullName, Password } = req.body;
 
+  console.log("login request body:", req.body);
+
   if (!fullName || !Password) {
     return res
       .status(400)
@@ -90,7 +92,9 @@ export const login = async (req, res) => {
       });
     }
 
-    const isPasswordCorrect = bcrypt.compare(Password, user.Password);
+    console.log("Comparing passwords", Password, user.Password);
+
+    const isPasswordCorrect = await bcrypt.compare(Password, user.Password);
     if (!isPasswordCorrect) {
       return res
         .status(400)
