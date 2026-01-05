@@ -172,7 +172,7 @@ function ChatsList() {
                           {/* Message & Time Container */}
                           <div className="flex items-baseline gap-2 min-w-0 overflow-hidden">
                             <span
-                              className={`truncate text-sm ${
+                              className={`truncate text-[12px] ${
                                 isSelected ? "text-white" : "text-slate-400"
                               }`}
                             >
@@ -192,7 +192,7 @@ function ChatsList() {
                                 ✓✓
                               </span>
                             ) : (
-                              <span className="text-slate-500 text-[15px] leading-none">
+                              <span className="text-slate-500 text-[14px] leading-none">
                                 ✓
                               </span>
                             )}
@@ -223,7 +223,7 @@ function ChatsList() {
                           )}
 
                           {/* Message Content */}
-                          <span className="truncate text-sm">
+                          <span className="truncate text-[12px]">
                             {previewValue}
                           </span>
 

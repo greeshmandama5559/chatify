@@ -8,14 +8,14 @@ function ActiveTabSwitch() {
     unseenCounts = {},
   } = useChatStore();
 
-  if (activeTab === "chats") {
-    const { getMyChatPartners } = useChatStore.getState();
+  // if (activeTab === "chats") {
+  //   const { getMyChatPartners } = useChatStore.getState();
 
-    // If no chats loaded OR chats contain invalid entries → refetch
-    if (!Array.isArray(chats) || chats.some((c) => !c || !c._id)) {
-      getMyChatPartners();
-    }
-  }
+  //   // If no chats loaded OR chats contain invalid entries → refetch
+  //   if (!Array.isArray(chats) || chats.some((c) => !c || !c._id)) {
+  //     getMyChatPartners();
+  //   }
+  // }
 
   // Compute total unseen count:
   // Prefer counts from chats (if any chats have unseenCount defined).
