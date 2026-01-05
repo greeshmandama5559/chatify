@@ -359,9 +359,9 @@ export const useChatStore = create((set, get) => ({
 
     // Add optimistic message to the current live state (use get() to avoid stale writes)
     set((state) => ({
-      messages: [...(state.messages || []), optimisticMessage],
-
       chatMessages: [...(state.chatMessages || []), optimisticMessage],
+
+      messages: [...(state.messages || []), optimisticMessage],
       // update cache too
       messagesCache: {
         ...(state.messagesCache || {}),

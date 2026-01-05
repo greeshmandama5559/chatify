@@ -124,11 +124,10 @@ function MessageInput() {
 
       setImagePreview(null);
 
-       setText("");
+      setText("");
 
       await sendMessage(payloadForStore);
 
-     
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowEmojiPicker(false);
     } catch (err) {
