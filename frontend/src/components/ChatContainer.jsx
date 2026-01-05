@@ -1,11 +1,12 @@
+/* eslint-disable no-unused-vars */
 import ChatHeader from "./ChatHeader";
 import NoChatHistoryPlaceholder from "./NoChatHistoryPlaceholder";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { useEffect, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useRef, useState, useLayoutEffect, useMemo } from "react";
 import MessageInput from "./MessageInput";
 import MessagesLoadingSkeleton from "./MessagesLoadingSkeleton";
-import { LoaderCircle, DownloadCloud, X, Trash2 } from "lucide-react";
+import { LoaderCircle, DownloadCloud, X, Trash2, Copy } from "lucide-react";
 import ImageWithLoader from "./chat-container-components/ImageWithLoader";
 import LinkifyText from "./chat-container-components/LinkifyText";
 import VideoCallContainer from "./chat-container-components/VideoCallContainer";
@@ -14,9 +15,8 @@ import { isSameDay, formatChatDay } from "../utils/FormatTime";
 
 function ChatContainer() {
   const {
-    messages,
-    messagesCache,
     chatMessages,
+    // messagesCache,
     selectedUser,
     isMessagesLoading,
     typingStatuses,
@@ -41,7 +41,7 @@ function ChatContainer() {
 
   const [showDeleteFor, setShowDeleteFor] = useState(false);
 
-  const isDeclined = messages.isDeclined;
+  const isDeclined = chatMessages?.isDeclined;
 
   const timerRef = useRef(null);
 
@@ -49,16 +49,6 @@ function ChatContainer() {
   //   if (!selectedUser?._id) return [];
   //   return messagesCache[selectedUser._id] ?? [];
   // }, [selectedUser?._id, messagesCache]);
-
-  useEffect(() => {
-    if (!selectedUser?._id) return;
-
-    const cached = messagesCache[selectedUser._id] || [];
-
-    useChatStore.setState({
-      chatMessages: cached,
-    });
-  }, [selectedUser?._id, messagesCache]);
 
   const handleMouseDown = (msgId) => {
     timerRef.current = setTimeout(() => {
@@ -72,7 +62,7 @@ function ChatContainer() {
 
   useEffect(() => {
     const handleClickOutside = () => {
-      setShowDeleteFor(null);
+      setShowDeleteFor(false);
     };
 
     document.addEventListener("click", handleClickOutside);
@@ -87,8 +77,6 @@ function ChatContainer() {
 
   const lastMessage =
     chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
-
-  console.log("Last message:", lastMessage);
 
   const lastMessageIsMine = lastMessage?.senderId === authUser._id;
 
@@ -249,6 +237,12 @@ function ChatContainer() {
     }
   };
 
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setShowDeleteFor(false); // Close menu after copying
+    // Optional: Add a "Copied!" toast notification here
+  };
+
   const partnerIsTyping = selectedUser
     ? !!typingStatuses[selectedUser._id]
     : false;
@@ -297,7 +291,7 @@ function ChatContainer() {
                 <div key={msg._id}>
                   {showDayHeader && (
                     <div className="flex justify-center my-3">
-                      <span className="px-3 py-1 text-xs mb-10 rounded-full bg-slate-700/70 text-slate-300 shadow">
+                      <span className="px-3 py-1 text-xs mb-5 rounded-full bg-slate-700/70 text-slate-300 shadow">
                         {formatChatDay(msg.createdAt)}
                       </span>
                     </div>
@@ -394,7 +388,10 @@ function ChatContainer() {
 
                           {/* Text Content (prefer plainText only) */}
                           {plainText && (
-                            <p className="text-sm leading-tight tracking-wide wrap-break-word">
+                            <p
+                              style={{ userSelect: "none" }}
+                              className="text-sm leading-tight tracking-wide wrap-break-word"
+                            >
                               {LinkifyText(plainText)}
                             </p>
                           )}
@@ -413,16 +410,31 @@ function ChatContainer() {
                       </div>
 
                       {isMine && showDeleteFor === msg._id && (
-                        <button
-                          className="absolute -left-6 bottom-3 text-red-500 cursor-pointer"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await deleteMessage(msg._id, selectedUser?._id);
-                            setShowDeleteFor(null);
-                          }}
-                        >
-                          <Trash2 size={20} />
-                        </button>
+                        <div className="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                          <div className="flex flex-col">
+                            {/* Copy Option */}
+                            <button
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                              onClick={() => handleCopy(plainText)}
+                            >
+                              <Copy size={16} />
+                              Copy
+                            </button>
+
+                            {/* Delete Option */}
+                            <button
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 w-full text-left border-t border-gray-100"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await deleteMessage(msg._id, selectedUser?._id);
+                                setShowDeleteFor(false);
+                              }}
+                            >
+                              <Trash2 size={16} />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       )}
                       <button
                         className={`opacity-0 absolute ${
