@@ -78,12 +78,6 @@ function ChatsList() {
               setSelectedUser(chat);
               setIsVisitingProfile(false);
 
-              // ✅ ALWAYS reset first
-              useChatStore.setState({
-                chatMessages: cached,
-              });
-
-              // Fetch fresh (cache-aware)
               getMessagesByUserId(chatId, { silent: false });
 
               navigate(`/chats/${chatId}`);
@@ -185,19 +179,21 @@ function ChatsList() {
                         </div>
 
                         {/* Status Icon Logic */}
-                        {chat?.isSeenOn && authUser?.isSeenOn && !isSelected && (
-                          <div className="shrink-0 flex items-center">
-                            {lastMessage?.seen ? (
-                              <span className="text-cyan-400 text-xs font-bold leading-none">
-                                ✓✓
-                              </span>
-                            ) : (
-                              <span className="text-slate-500 text-[14px] leading-none">
-                                ✓
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        {chat?.isSeenOn &&
+                          authUser?.isSeenOn &&
+                          !isSelected && (
+                            <div className="shrink-0 flex items-center">
+                              {lastMessage?.seen ? (
+                                <span className="text-cyan-400 text-xs font-bold leading-none">
+                                  ✓✓
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 text-[14px] leading-none">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          )}
                       </div>
                     )}
 

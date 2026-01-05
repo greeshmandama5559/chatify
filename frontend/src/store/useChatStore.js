@@ -33,6 +33,7 @@ export const useChatStore = create((set, get) => ({
   allContacts: [],
   chats: [],
   messages: [],
+  chatMessages: [],
   activeTab: "chats",
   selectedUser: null,
   isUsersLoading: false,
@@ -240,13 +241,11 @@ export const useChatStore = create((set, get) => ({
     const cached = get().messagesCache[userId];
 
     set({
-      messages: cached ?? [],
+      chatMessages: cached ?? [],
     });
 
     get().getMessagesByUserId(userId, 1);
   },
-
-  chatMessages: [],
 
   // --------------------- LOAD MESSAGES ---------------------
   getMessagesByUserId: async (userId, { silent = false } = {}) => {
@@ -290,7 +289,7 @@ export const useChatStore = create((set, get) => ({
       set({ messagesCache: { ...get().messagesCache, [userId]: merged } });
       get()._persistCacheToStorage();
       if (!silent && isActiveChat) {
-        set({ messages: merged });
+        set({ chatMessages: merged });
         get().markChatAsSeen(userId);
       }
     } catch (error) {
@@ -363,7 +362,6 @@ export const useChatStore = create((set, get) => ({
     set((state) => ({
       chatMessages: [...(state.chatMessages || []), optimisticMessage],
 
-      messages: [...(state.messages || []), optimisticMessage],
       // update cache too
       messagesCache: {
         ...(state.messagesCache || {}),
@@ -492,7 +490,7 @@ export const useChatStore = create((set, get) => ({
 
       // Replace optimistic message in messages list with server message
       set((state) => {
-        const curMessages = Array.isArray(state.messages) ? state.messages : [];
+        const curMessages = Array.isArray(state.chatMessages) ? state.chatMessages : [];
         const hasServer = curMessages.some(
           (m) => String(m._id) === String(serverMsg._id)
         );
@@ -527,7 +525,7 @@ export const useChatStore = create((set, get) => ({
           newMessages.push(serverMsg);
         }
 
-        return { messages: newMessages };
+        return { chatMessages: newMessages };
       });
 
       // Update messagesCache in a consistent way (replace tempId if present)
@@ -624,7 +622,10 @@ export const useChatStore = create((set, get) => ({
           cache[selectedId] = cache[selectedId].filter((m) => m._id !== tempId);
         }
         // We keep any other messages that arrived in the meantime
-        return { messages: filtered, messagesCache: cache };
+        return {
+          messagesCache: cache,
+          chatMessages: filtered,
+        };
       });
 
       toast.error("Failed to send message");
@@ -719,12 +720,6 @@ export const useChatStore = create((set, get) => ({
         msg.senderId === partnerId && !msg.seen ? { ...msg, seen: true } : msg
       ),
     }));
-
-    set((state) => ({
-      chatMessages: state.chatMessages.map((msg) =>
-        msg.senderId === partnerId && !msg.seen ? { ...msg, seen: true } : msg
-      ),
-    }));
   },
 
   markSentMessagesSeenLocal: (partnerId) => {
@@ -745,14 +740,6 @@ export const useChatStore = create((set, get) => ({
 
     set((state) => ({
       chatMessages: state.chatMessages.map((msg) =>
-        msg.senderId === myId && msg.receiverId === partnerId && !msg.seen
-          ? { ...msg, seen: true }
-          : msg
-      ),
-    }));
-
-    set((state) => ({
-      messages: state.messages.map((msg) =>
         msg.senderId === myId && msg.receiverId === partnerId && !msg.seen
           ? { ...msg, seen: true }
           : msg
@@ -807,14 +794,17 @@ export const useChatStore = create((set, get) => ({
           if (
             get().chatMessages.some(
               (m) => String(m._id) === String(newMessage._id)
-            ) ||
-            get().messages.some((m) => String(m._id) === String(newMessage._id))
+            )
           )
             return;
 
           const { authUser } = useAuthStore.getState(); // always latest
           const authId = normalizeId(authUser?._id);
           const senderId = normalizeId(newMessage.senderId);
+
+          if (senderId === authId) {
+            return;
+          }
           const receiverId = normalizeId(newMessage.receiverId);
 
           // Determine partner id (the other user in the conversation)
@@ -839,8 +829,6 @@ export const useChatStore = create((set, get) => ({
           const selectedUserId = normalizeId(get().selectedUser?._id);
 
           // Use normalized ids for caches/chats keys
-          const messagesCache = get().messagesCache || {};
-          const prevCache = messagesCache[partnerId] || [];
 
           // Append message to selected chat if currently open
           const isIncoming = senderId !== authId;
@@ -851,33 +839,25 @@ export const useChatStore = create((set, get) => ({
           }
 
           if (isIncoming && isChatOpen) {
-            set({ chatMessages: [...get().chatMessages, newMessage] });
+            const updatedChatMessages = [...get().chatMessages, newMessage];
+            const updatedCache = {
+              ...get().messagesCache,
+              [partnerId]: [
+                ...(get().messagesCache[partnerId] || []),
+                newMessage,
+              ].slice(-200),
+            };
 
-            set({ messages: [...get().messages, newMessage] });
+            set({
+              chatMessages: updatedChatMessages,
+              messagesCache: updatedCache,
+            });
 
             if (get().unseenCounts[partnerId] > 0) {
               get().markChatAsSeen(partnerId);
             }
           }
 
-          const newCacheForUser = [...prevCache, newMessage].slice(-200);
-
-          if (newMessage.senderId === authUser._id) return;
-
-          const list = get().messagesCache[partnerId] || [];
-
-          const exists = list.some(
-            (m) => String(m._id) === String(newMessage._id)
-          );
-
-          if (exists) return;
-
-          set({
-            messagesCache: {
-              ...get().messagesCache,
-              [partnerId]: newCacheForUser,
-            },
-          });
 
           const getUserInfo = async (id) => {
             if (typeof get().getUserFromCache === "function") {
@@ -1044,8 +1024,8 @@ export const useChatStore = create((set, get) => ({
         // 1️⃣ Remove message from open messages (if this chat is open)
         const updatedMessages =
           normalizeId(state.selectedUser?._id) === chatId
-            ? state.messages.filter((m) => String(m._id) !== String(messageId))
-            : state.messages;
+            ? state.chatMessages.filter((m) => String(m._id) !== String(messageId))
+            : state.chatMessages;
 
         // 2️⃣ Remove message from cache (SOURCE OF TRUTH)
         const prevCache = state.messagesCache?.[chatId] || [];
@@ -1079,7 +1059,7 @@ export const useChatStore = create((set, get) => ({
         });
 
         return {
-          messages: updatedMessages,
+          chatMessages: updatedMessages,
           messagesCache: {
             ...state.messagesCache,
             [chatId]: updatedCache,
@@ -1286,7 +1266,7 @@ export const useChatStore = create((set, get) => ({
         // If the currently-open chat is present, set messages to updated cache
         const sel = get().selectedUser;
         if (sel && sel._id && Array.isArray(parsed[sel._id])) {
-          set({ messages: parsed[sel._id] });
+          set({ chatMessages: parsed[sel._id] });
         }
       } catch (e) {
         console.warn(
@@ -1317,8 +1297,8 @@ export const useChatStore = create((set, get) => ({
         // 1️⃣ Update open messages (if chat is open)
         const updatedMessages =
           String(state.selectedUser?._id) === chatId
-            ? state.messages.filter((m) => String(m._id) !== String(messageId))
-            : state.messages;
+            ? state.chatMessages.filter((m) => String(m._id) !== String(messageId))
+            : state.chatMessages;
 
         // 2️⃣ Update cache
         const prevCache = state.messagesCache?.[chatId] || [];
@@ -1351,7 +1331,7 @@ export const useChatStore = create((set, get) => ({
         });
 
         return {
-          messages: updatedMessages,
+          chatMessages: updatedMessages,
           messagesCache: {
             ...state.messagesCache,
             [chatId]: updatedCache,

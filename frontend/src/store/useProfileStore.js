@@ -91,6 +91,9 @@ export const useProfileStore = create((set, get) => ({
       });
 
       await axiosInstance.post(`/profile/${userId}/like`);
+
+      useChatStore.getState().getTrendingUsers();
+
     } catch (error) {
       console.log(
         "Error in like profile (frontend) : ",
@@ -129,6 +132,9 @@ export const useProfileStore = create((set, get) => ({
       });
 
       await axiosInstance.delete(`/profile/${userId}/unlike`);
+
+      useChatStore.getState().getTrendingUsers();
+
     } catch (error) {
       console.log(
         "Error in Unlike profile (frontend) : ",
