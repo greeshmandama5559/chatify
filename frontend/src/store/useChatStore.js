@@ -316,6 +316,8 @@ export const useChatStore = create((set, get) => ({
     const { authUser } = useAuthStore.getState();
     const tempId = `temp-${Date.now()}`;
 
+    const encryptMessage = useCryptoStore.getState().encryptMessage;
+
     // Basic validation
     const selectedUser = get().selectedUser;
     if (!selectedUser || !selectedUser._id) {
@@ -349,7 +351,7 @@ export const useChatStore = create((set, get) => ({
       // store readable text for UI
       plainText: cleanText,
       // keep the encrypted payload too (if present)
-      cipherText: messageData.cipherText || null,
+      cipherText: messageData?.cipherText || null,
       image: messageData.image || null,
       createdAt: new Date().toISOString(),
       isOptimistic: true,
@@ -371,6 +373,18 @@ export const useChatStore = create((set, get) => ({
         ].slice(-200),
       },
     }));
+
+    let encryptedText = null;
+
+    if (cleanText) {
+      encryptedText = await encryptMessage(cleanText);
+      if (!encryptedText) {
+        toast.error("Encryption failed");
+        return;
+      }
+    }
+
+    messageData.cipherText = encryptedText;
 
     // Update chats: create or update stub and move to top (use plainText for preview)
     set((state) => {
@@ -791,7 +805,9 @@ export const useChatStore = create((set, get) => ({
 
           // ignore duplicates
           if (
-            get().chatMessages.some((m) => String(m._id) === String(newMessage._id)) ||
+            get().chatMessages.some(
+              (m) => String(m._id) === String(newMessage._id)
+            ) ||
             get().messages.some((m) => String(m._id) === String(newMessage._id))
           )
             return;
