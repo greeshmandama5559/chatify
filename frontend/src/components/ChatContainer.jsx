@@ -16,7 +16,7 @@ import { isSameDay, formatChatDay } from "../utils/FormatTime";
 function ChatContainer() {
   const {
     chatMessages,
-    // messagesCache,
+    getMessagesByUserId,
     selectedUser,
     isMessagesLoading,
     typingStatuses,
@@ -69,11 +69,12 @@ function ChatContainer() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // useEffect(() => {
-  //   if (authUser && (!socket || !socket.connected)) {
-  //     connectSocket();
-  //   }
-  // }, [authUser, connectSocket, socket]);
+  useEffect(() => {
+    if (!selectedUser?._id) return;
+
+    getMessagesByUserId(selectedUser._id , { silent: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUser?._id]);
 
   const lastMessage =
     chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
