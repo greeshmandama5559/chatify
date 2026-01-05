@@ -88,6 +88,8 @@ function ChatContainer() {
   const lastMessage =
     chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
 
+  console.log("Last message:", lastMessage);
+
   const lastMessageIsMine = lastMessage?.senderId === authUser._id;
 
   const lastSeenRef = useRef(null);

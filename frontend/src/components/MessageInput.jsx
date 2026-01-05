@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
-import { useCryptoStore } from "../store/useCryptoStore";
+// import { useCryptoStore } from "../store/useCryptoStore";
 import { XIcon, ImageIcon, SendIcon, Smile } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 
@@ -21,7 +21,7 @@ function MessageInput() {
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
 
-  const { encryptMessage } = useCryptoStore();
+  // const { encryptMessage } = useCryptoStore();
 
   // typing debounce
   const typingTimeoutRef = useRef(null);
@@ -87,17 +87,17 @@ function MessageInput() {
   };
 
   const handleSendMessage = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
+    if (e) e.preventDefault();
 
-    const cleanText = (text || "").trim();
-
-    // nothing to send
+    const cleanText = text.trim();
     if (!cleanText && !imagePreview) return;
 
-    if (isSoundEnabled && typeof selectRandomSound === "function")
-      selectRandomSound();
+    setText("");
+    setImagePreview(null);
+    setShowEmojiPicker(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
-    // stop typing indicator
+    // stop typing immediately
     emitTyping(false);
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -105,34 +105,26 @@ function MessageInput() {
     }
 
     try {
-      // prepare fields: plainText for UI, cipherText for server
-      let encryptedText = null;
-      if (cleanText) {
-        encryptedText = await encryptMessage(cleanText);
-        if (!encryptedText) {
-          console.error("MessageInput: encryptMessage returned null for text:", cleanText);
-          toast.error("Encryption failed — message not sent");
-          return;
-        }
+      // let encryptedText = null;
+
+      // if (cleanText) {
+      //   encryptedText = await encryptMessage(cleanText);
+      //   if (!encryptedText) {
+      //     toast.error("Encryption failed");
+      //     return;
+      //   }
+      // }
+
+      await sendMessage({
+        plainText: cleanText,
+        image: imagePreview,
+      });
+
+      if (isSoundEnabled && selectRandomSound) {
+        selectRandomSound();
       }
-
-      const payloadForStore = {
-        plainText: cleanText || "",
-        cipherText: encryptedText || null,
-        image: imagePreview || null,
-      };
-
-      setImagePreview(null);
-
-       setText("");
-
-      await sendMessage(payloadForStore);
-
-     
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      setShowEmojiPicker(false);
     } catch (err) {
-      console.error("send message error", err);
+      console.error(err);
       toast.error("Failed to send message");
     }
   };
@@ -211,7 +203,10 @@ function MessageInput() {
         </div>
       )}
 
-      <div className="px-4 py-3 md:p-4 bg-slate-900/90 backdrop-blur-lg" style={{ minHeight: 64 }}>
+      <div
+        className="px-4 py-3 md:p-4 bg-slate-900/90 backdrop-blur-lg"
+        style={{ minHeight: 64 }}
+      >
         {/* Input Area */}
         <form
           onSubmit={handleSendMessage}
@@ -257,7 +252,9 @@ function MessageInput() {
                 setShowEmojiPicker((prev) => !prev);
               }}
               className={`p-2 md:p-3 rounded-full ${
-                showEmojiPicker ? "text-cyan-400 bg-slate-800" : "text-slate-400 "
+                showEmojiPicker
+                  ? "text-cyan-400 bg-slate-800"
+                  : "text-slate-400 "
               }  hover:text-cyan-400 hover:bg-slate-800 transition-all`}
               aria-label="emojis"
             >
