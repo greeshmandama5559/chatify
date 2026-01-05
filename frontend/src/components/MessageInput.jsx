@@ -21,7 +21,7 @@ function MessageInput() {
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
 
-  const inputRef = useRef(null);
+  const textInputRef = useRef(null);
 
   const { encryptMessage } = useCryptoStore();
 
@@ -131,14 +131,14 @@ function MessageInput() {
 
       setText("");
 
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-
       await sendMessage(payloadForStore);
 
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowEmojiPicker(false);
+
+      if (textInputRef.current) {
+        textInputRef.current.focus();
+      }
     } catch (err) {
       console.error("send message error", err);
       toast.error("Failed to send message");
@@ -252,7 +252,7 @@ function MessageInput() {
           </button>
 
           <input
-            ref={inputRef}
+            ref={textInputRef}
             type="text"
             value={text}
             onChange={handleInputChange}
