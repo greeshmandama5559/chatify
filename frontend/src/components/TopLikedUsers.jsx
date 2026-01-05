@@ -186,7 +186,7 @@ function TopLikedUsers() {
           </div>
         )}
 
-        {TopLikedUsers?.length < 1 && (
+        {TopLikedUsers?.length < 1 && !isUsersLoading && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
