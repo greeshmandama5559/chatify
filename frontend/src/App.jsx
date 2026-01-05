@@ -26,6 +26,7 @@ import AvatarsPage from "./pages/AvatarsPage";
 import { getStreamToken } from "./store/api";
 import { useQuery } from "@tanstack/react-query";
 import { streamClient } from "./utils/StreamClient";
+import { useCryptoStore } from "./store/useCryptoStore";
 
 const AuthGuard = ({ allow, children }) => {
   const { authStatus } = useAuthStore();
@@ -50,6 +51,8 @@ function App() {
   const socket = useAuthStore((s) => s.socket);
   const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
 
+  const { decryptMessage, encryptMessage } = useCryptoStore();
+
   const {
     hydrateFromServer,
     getAllContacts,
@@ -60,7 +63,6 @@ function App() {
 
   const { subscribeToLike, getMyLikes, getMyLikesForNotification } =
     useProfileStore();
-
 
   //--------------on browser back button for chats----------------//
   useEffect(() => {
@@ -73,12 +75,10 @@ function App() {
     return () => window.removeEventListener("popstate", onBack);
   }, []);
 
-
   //--------------Check authentication of user----------------//
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
 
   //--------------Get cache from localStorage----------------//
   useEffect(() => {
@@ -103,7 +103,6 @@ function App() {
     authStatus,
   ]);
 
-
   //--------------Notifies when someone likes the profile----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
@@ -117,7 +116,6 @@ function App() {
     };
   }, [authStatus, socket, subscribeToLike]);
 
-
   //--------------Get chats----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
@@ -130,7 +128,6 @@ function App() {
 
     hydrate();
   }, [isAuthenticated, authUser?.isVerified, authStatus, hydrateFromServer]);
-
 
   //--------------Connect Video Call----------------//
   const { data: tokenData } = useQuery({
@@ -158,7 +155,6 @@ function App() {
     };
   }, [authUser, isAuthenticated, tokenData]);
 
-
   //--------------Get my Likes To show in profile page----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
@@ -172,7 +168,6 @@ function App() {
     authUser?.likesCount,
     isAuthenticated,
   ]);
-
 
   //--------------Get Trending Users and get likes for notofication----------------//
   useEffect(() => {
@@ -192,7 +187,6 @@ function App() {
     isAuthenticated,
   ]);
 
-
   //--------------Get Similar Interest Users----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
@@ -207,7 +201,6 @@ function App() {
     authStatus,
   ]);
 
-
   //--------------get all users to show in discovery page and chats users tab----------------//
   useEffect(() => {
     if (authStatus !== "ready") return;
@@ -216,6 +209,22 @@ function App() {
     getAllContacts();
   }, [authStatus, authUser?.isVerified, getAllContacts, isAuthenticated]);
 
+  //--------------Crypto Test----------------//
+  useEffect(() => {
+    encryptMessage("Test Message")
+      .then((cipherText) => {
+        decryptMessage(cipherText)
+          .then((plaintext) => {
+            console.log("Crypto Test:", { cipherText, plaintext });
+          })
+          .catch((error) => {
+            console.error("Crypto Test Decrypt Error:", error);
+          });
+      })
+      .catch((error) => {
+        console.error("Crypto Test Encrypt Error:", error);
+      });
+  }, [decryptMessage, encryptMessage]);
 
   //--------------Prefetch messages of top 10 users in chatsList----------------//
   useEffect(() => {
