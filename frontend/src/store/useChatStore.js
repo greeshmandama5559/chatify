@@ -260,8 +260,9 @@ export const useChatStore = create((set, get) => ({
       if (cached.length > 0) {
         if (!silent && isActiveChat) {
           set({ chatMessages: cached });
+          return;
         }
-
+        
         if (silent) return;
       }
 
