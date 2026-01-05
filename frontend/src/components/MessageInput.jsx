@@ -21,6 +21,8 @@ function MessageInput() {
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
 
+  const inputRef = useRef(null);
+
   const { encryptMessage } = useCryptoStore();
 
   // typing debounce
@@ -110,7 +112,10 @@ function MessageInput() {
       if (cleanText) {
         encryptedText = await encryptMessage(cleanText);
         if (!encryptedText) {
-          console.error("MessageInput: encryptMessage returned null for text:", cleanText);
+          console.error(
+            "MessageInput: encryptMessage returned null for text:",
+            cleanText
+          );
           toast.error("Encryption failed — message not sent");
           return;
         }
@@ -124,11 +129,14 @@ function MessageInput() {
 
       setImagePreview(null);
 
-       setText("");
+      setText("");
+
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
 
       await sendMessage(payloadForStore);
 
-     
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowEmojiPicker(false);
     } catch (err) {
@@ -211,7 +219,10 @@ function MessageInput() {
         </div>
       )}
 
-      <div className="px-4 py-3 md:p-4 bg-slate-900/90 backdrop-blur-lg" style={{ minHeight: 64 }}>
+      <div
+        className="px-4 py-3 md:p-4 bg-slate-900/90 backdrop-blur-lg"
+        style={{ minHeight: 64 }}
+      >
         {/* Input Area */}
         <form
           onSubmit={handleSendMessage}
@@ -241,6 +252,7 @@ function MessageInput() {
           </button>
 
           <input
+            ref={inputRef}
             type="text"
             value={text}
             onChange={handleInputChange}
@@ -257,7 +269,9 @@ function MessageInput() {
                 setShowEmojiPicker((prev) => !prev);
               }}
               className={`p-2 md:p-3 rounded-full ${
-                showEmojiPicker ? "text-cyan-400 bg-slate-800" : "text-slate-400 "
+                showEmojiPicker
+                  ? "text-cyan-400 bg-slate-800"
+                  : "text-slate-400 "
               }  hover:text-cyan-400 hover:bg-slate-800 transition-all`}
               aria-label="emojis"
             >
