@@ -841,17 +841,9 @@ export const useChatStore = create((set, get) => ({
 
           if (isIncoming && isChatOpen) {
             const updatedChatMessages = [...get().chatMessages, newMessage];
-            const updatedCache = {
-              ...get().messagesCache,
-              [partnerId]: [
-                ...(get().messagesCache[partnerId] || []),
-                newMessage,
-              ].slice(-200),
-            };
 
             set({
               chatMessages: updatedChatMessages,
-              messagesCache: updatedCache,
             });
 
             if (get().unseenCounts[partnerId] > 0) {
@@ -859,6 +851,17 @@ export const useChatStore = create((set, get) => ({
             }
           }
 
+          const updatedCache = {
+              ...get().messagesCache,
+              [partnerId]: [
+                ...(get().messagesCache[partnerId] || []),
+                newMessage,
+              ].slice(-200),
+            };
+
+          set({
+            messagesCache: updatedCache,
+          });
 
           const getUserInfo = async (id) => {
             if (typeof get().getUserFromCache === "function") {

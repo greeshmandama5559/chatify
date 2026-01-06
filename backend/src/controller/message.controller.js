@@ -178,6 +178,15 @@ export const sendMessage = async (req, res) => {
           profilePic: req.user.profilePic,
         })
       );
+
+      io.to(receiverSocketId).emit("newMessageNotification", {
+        senderId: String(senderId),
+        fullName: req.user.fullName,
+        profilePic: req.user.profilePic,
+        videoCall: type === "video_call" ? true : false,
+        image: image ? true : false,
+        message: text ? text : image ? "📷 Image" : url ? "sent a link" : "",
+      });
     }
 
     // emit to sender (multi-device support)
