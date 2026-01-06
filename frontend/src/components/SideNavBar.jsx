@@ -30,7 +30,7 @@ const navItems = [
 ];
 
 const SideNavBar = () => {
-  const { chats = [], unseenCounts = {} } = useChatStore();
+  const { chats = [], unseenCounts = {}, setSelectedUser } = useChatStore();
   const { authUser } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,6 +52,7 @@ const SideNavBar = () => {
   }, [chats, unseenCounts]);
 
   const handleNavigation = async (path, id) => {
+    setSelectedUser(null);
     navigate(path);
     if (id === "notifications") {
       await setHasNewNotification(false);

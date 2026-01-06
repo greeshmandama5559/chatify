@@ -27,6 +27,7 @@ import { getStreamToken } from "./store/api";
 import { useQuery } from "@tanstack/react-query";
 import { streamClient } from "./utils/StreamClient";
 import { useCryptoStore } from "./store/useCryptoStore";
+import toast from "react-hot-toast";
 
 const AuthGuard = ({ allow, children }) => {
   const { authStatus } = useAuthStore();
@@ -58,11 +59,71 @@ function App() {
     getAllContacts,
     getTrendingUsers,
     getMessagesByUserId,
+    selectedUser,
     chats,
   } = useChatStore();
 
   const { subscribeToLike, getMyLikes, getMyLikesForNotification } =
     useProfileStore();
+
+  //--------------Display New message Notification----------------//
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = async (data) => {
+      let plainText;
+
+      console.log(data);
+
+      if (!data.videoCall && !data.image) {
+        plainText = await decryptMessage(data.message);
+      } else {
+        plainText = data.message;
+      }
+
+      if (selectedUser?._id === data.senderId) return;
+
+      toast.custom((t) => (
+        <div
+          className={`${
+            t.visible ? "animate-custom-enter" : "animate-custom-leave"
+          } max-w-md w-full bg-gray-900 shadow-2xl rounded-lg pointer-events-auto flex ring-1 ring-slate-400 ring-opacity-10`}
+        >
+          <div className="flex-1 w-0 p-4">
+            <div className="flex items-start">
+              <div className="shrink-0 pt-0.5">
+                <img
+                  className="h-10 w-10 rounded-full border border-gray-700"
+                  src={data.profilePic}
+                  alt=""
+                />
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-semibold text-gray-100">
+                  {data.fullName}
+                </p>
+                <p className="mt-1 text-sm text-gray-400">{plainText}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex border-l border-gray-800">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="w-full rounded-r-lg p-4 text-sm font-medium text-red-400 hover:text-red-300 transition-colors focus:outline-none"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ));
+    };
+
+    socket.on("newMessageNotification", handleNotification);
+
+    return () => {
+      socket.off("newMessageNotification", handleNotification);
+    };
+  }, [decryptMessage, selectedUser?._id, socket]);
 
   //--------------on browser back button for chats----------------//
   useEffect(() => {
