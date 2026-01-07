@@ -78,6 +78,13 @@ function ChatsList() {
               setSelectedUser(chat);
               setIsVisitingProfile(false);
 
+              const cached =
+                useChatStore.getState().messagesCache[chatId] || [];
+
+              useChatStore.setState({
+                chatMessages: cached,
+              });
+
               getMessagesByUserId(chatId, { silent: false });
 
               navigate(`/chats/${chatId}`);

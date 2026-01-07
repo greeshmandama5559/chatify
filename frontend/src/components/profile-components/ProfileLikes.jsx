@@ -63,7 +63,7 @@ const ProfileLikes = ({ authUser, likedUsers }) => {
               </button>
             </div>
             
-            <div className="max-h-[60vh] overflow-y-auto p-2">
+            <div className="max-h-70 overflow-y-auto p-2">
               {likedUsers.map((like) => (
                 <div 
                 key={like._id} 
