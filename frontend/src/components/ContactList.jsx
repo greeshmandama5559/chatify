@@ -1,25 +1,27 @@
-import { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
 import { useNavigate } from "react-router-dom";
+import { useProfileStore } from "../store/useProfileStore";
 
 function ContactList() {
   const {
-    getAllContacts,
     allContacts,
     setSelectedUser,
     selectedUser,
     isUsersLoading,
+    getMessagesByUserId,
   } = useChatStore();
+
+  const { setIsVisitingProfile } = useProfileStore();
 
   const { onlineUsers } = useAuthStore();
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getAllContacts();
-  }, [getAllContacts]);
+  // useEffect(() => {
+  //   getAllContacts();
+  // }, [getAllContacts]);
 
   if (isUsersLoading) return <UsersLoadingSkeleton size={5} />;
 
@@ -34,6 +36,17 @@ function ContactList() {
             key={contact._id}
             onClick={() => {
               setSelectedUser(contact);
+              setIsVisitingProfile(false);
+
+              const cached =
+                useChatStore.getState().messagesCache[contact._id] || [];
+
+              useChatStore.setState({
+                chatMessages: cached,
+              });
+
+              getMessagesByUserId(contact._id, { silent: false });
+
               navigate(`/chats/${contact._id}`);
             }}
             className={`w-full p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group
