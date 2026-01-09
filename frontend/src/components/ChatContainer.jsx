@@ -72,8 +72,8 @@ function ChatContainer() {
   useEffect(() => {
     if (!selectedUser?._id) return;
 
-    getMessagesByUserId(selectedUser._id , { silent: true });
-  }, [getMessagesByUserId, selectedUser._id]);
+    getMessagesByUserId(selectedUser?._id , { silent: true });
+  }, [getMessagesByUserId, selectedUser?._id]);
 
   const lastMessage =
     chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
